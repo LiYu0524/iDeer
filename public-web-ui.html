@@ -272,6 +272,16 @@
                     <p class="mt-2 text-xs leading-6 text-slate-600">仅本次生效。若同时勾选 X / Twitter，会辅助一次性账号 discovery。</p>
                   </div>
 
+                  <div id="custom-twitter-input-panel" class="hidden">
+                    <div class="mb-2 flex items-center justify-between gap-3">
+                      <label for="custom-x-input" class="block text-sm font-semibold text-slate-700">X 信息源</label>
+                      <span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">仅本次生效</span>
+                    </div>
+                    <textarea id="custom-x-input" rows="5" placeholder="@openai&#10;https://x.com/karpathy&#10;huggingface"
+                              class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 outline-none transition focus:border-sea focus:ring-4 focus:ring-emerald-100"></textarea>
+                    <p class="mt-2 text-xs leading-6 text-slate-600">只有勾选 X / Twitter 时才会生效。一行一个，支持 用户名、@用户名 或 x.com 链接；留空则继续使用后台默认账号池。</p>
+                  </div>
+
                   <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-7 text-emerald-800">
                     本次输入不会写入服务器全局配置，也不会覆盖后台里的默认兴趣描述。
                   </div>
@@ -451,6 +461,7 @@
       document.querySelectorAll('[data-send-button-label]').forEach(label => {
         label.textContent = quickVisible ? '发送今日汇总' : '发送定制版 Daily Trend';
       });
+      renderCustomTwitterInput();
     }
 
     function switchDeliveryMode(mode) {
@@ -494,6 +505,14 @@
         button.dataset.active = active ? 'true' : 'false';
         button.dataset.disabled = disabled ? 'true' : 'false';
       });
+      renderCustomTwitterInput();
+    }
+
+    function renderCustomTwitterInput() {
+      const panel = document.getElementById('custom-twitter-input-panel');
+      if (!panel) return;
+      const shouldShow = state.mode === 'custom' && state.selectedSources.has('twitter') && state.meta.twitter_enabled;
+      panel.classList.toggle('hidden', !shouldShow);
     }
 
     function getActiveEmail() {
@@ -510,6 +529,9 @@
       const scholarUrl = state.mode === 'custom'
         ? document.getElementById('custom-scholar').value.trim()
         : '';
+      const xAccountsInput = state.mode === 'custom' && state.selectedSources.has('twitter')
+        ? document.getElementById('custom-x-input').value.trim()
+        : '';
 
       return {
         sources: Array.from(state.selectedSources),
@@ -517,6 +539,7 @@
         receiver: email,
         description,
         scholar_url: scholarUrl,
+        x_accounts_input: xAccountsInput,
         delivery_mode: state.deliveryMode
       };
     }

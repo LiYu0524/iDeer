@@ -7,11 +7,13 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlparse
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -186,6 +188,90 @@ def _append_arg(cmd: list[str], flag: str, value: str | int | float | None) -> N
     cmd.extend([flag, str(value)])
 
 
+def _merge_unique_strings(*groups: list[str]) -> list[str]:
+    merged: list[str] = []
+    seen: set[str] = set()
+    for group in groups:
+        for item in group:
+            value = item.strip()
+            if not value:
+                continue
+            key = value.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(value)
+    return merged
+
+
+def _normalize_x_username(raw_value: str) -> str | None:
+    candidate = raw_value.strip().lstrip("@")
+    if not candidate:
+        return None
+    if re.fullmatch(r"[A-Za-z0-9_]{1,15}", candidate):
+        return candidate
+    return None
+
+
+def _extract_x_username(raw_value: str) -> str | None:
+    candidate = raw_value.strip()
+    if not candidate:
+        return None
+
+    if re.match(r"^(?:www\.)?(?:mobile\.)?(?:x|twitter)\.com/", candidate, flags=re.IGNORECASE):
+        candidate = "https://" + candidate.lstrip("/")
+
+    if not re.match(r"^https?://", candidate, flags=re.IGNORECASE):
+        return _normalize_x_username(candidate)
+
+    parsed = urlparse(candidate)
+    host = parsed.netloc.lower()
+    if host.startswith("www."):
+        host = host[4:]
+    if host not in {"x.com", "twitter.com", "mobile.twitter.com"}:
+        return None
+
+    segments = [segment for segment in parsed.path.split("/") if segment]
+    if not segments:
+        return None
+
+    reserved_segments = {
+        "explore",
+        "hashtag",
+        "home",
+        "i",
+        "intent",
+        "messages",
+        "notifications",
+        "search",
+        "settings",
+        "share",
+        "tos",
+        "privacy",
+    }
+    if segments[0].lower() in reserved_segments:
+        return None
+
+    return _normalize_x_username(segments[0])
+
+
+def _parse_x_accounts_input(raw_text: str) -> tuple[list[str], list[str]]:
+    usernames: list[str] = []
+    invalid_entries: list[str] = []
+
+    for raw_line in str(raw_text or "").replace("\r\n", "\n").split("\n"):
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        username = _extract_x_username(line)
+        if username:
+            usernames.append(username)
+        else:
+            invalid_entries.append(line)
+
+    return _merge_unique_strings(usernames), invalid_entries
+
+
 def _collect_generated_files(result_dirs: list[Path]) -> list[dict]:
     generated_files = []
 
@@ -265,6 +351,7 @@ class RunRequest(BaseModel):
     description: str = ""
     researcher_profile: str = ""
     scholar_url: str = ""
+    x_accounts_input: str = ""
     delivery_mode: Literal["source_emails", "combined_report", "both"] = "source_emails"
 
 
@@ -360,12 +447,19 @@ async def run_daily_recommender(req: RunRequest):
         override_description = _normalize_multiline_text(req.description)
         scholar_url = req.scholar_url.strip()
         receiver = req.receiver.strip() or str(config.get("receiver", "")).strip()
+        custom_x_accounts, invalid_x_accounts = _parse_x_accounts_input(req.x_accounts_input)
 
         effective_description = override_description or _normalize_multiline_text(config.get("description", ""))
         report_profile_path: Path | None = None
         description_path: Path | None = None
         researcher_profile_path: Path | None = None
         profile_urls: list[str] = []
+
+        if invalid_x_accounts:
+            preview = "、".join(invalid_x_accounts[:3])
+            raise ValueError(
+                f"以下 X 信息源无法识别：{preview}。仅支持 用户名、@用户名 或 https://x.com/username 链接。"
+            )
 
         if scholar_url:
             profile_urls.append(scholar_url)
@@ -482,7 +576,17 @@ async def run_daily_recommender(req: RunRequest):
         if "twitter" in req.sources:
             _append_arg(cmd, "--x_rapidapi_key", config.get("x_rapidapi_key"))
             _append_arg(cmd, "--x_rapidapi_host", config.get("x_rapidapi_host"))
-            _append_arg(cmd, "--x_accounts_file", TWITTER_ACCOUNTS_FILE)
+            accounts_file_path: Path = TWITTER_ACCOUNTS_FILE
+            if custom_x_accounts:
+                static_x_accounts, _ = _parse_x_accounts_input(_read_text_if_exists(TWITTER_ACCOUNTS_FILE))
+                merged_x_accounts = _merge_unique_strings(custom_x_accounts, static_x_accounts)
+                accounts_file_path = temp_root / "x_accounts.request.txt"
+                accounts_file_path.write_text("\n".join(merged_x_accounts) + "\n", encoding="utf-8")
+                yield {
+                    "type": "log",
+                    "message": f"已附加 {len(custom_x_accounts)} 个本次请求专用的 X 信息源。",
+                }
+            _append_arg(cmd, "--x_accounts_file", accounts_file_path)
 
             should_run_oneoff_discovery = bool(override_description or profile_urls)
             if should_run_oneoff_discovery:
