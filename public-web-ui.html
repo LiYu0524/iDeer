@@ -146,7 +146,7 @@
           GitHub Star
         </a>
 
-        <a href="/admin" class="hidden rounded-2xl px-3 py-2 text-sm font-semibold text-slate-500 transition hover:bg-white hover:text-slate-800 md:inline-flex">
+        <a href="/daily-recommender/admin" class="hidden rounded-2xl px-3 py-2 text-sm font-semibold text-slate-500 transition hover:bg-white hover:text-slate-800 md:inline-flex">
           Admin
         </a>
       </div>
@@ -196,7 +196,7 @@
             <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">默认 GitHub + HuggingFace</span>
           </div>
 
-          <div class="mt-6 grid gap-3 md:grid-cols-3">
+          <div class="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             <button type="button" class="source-pill rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left shadow-soft" data-source-toggle="github" onclick="toggleSource('github')">
               <div class="flex items-center justify-between">
                 <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900 text-xs font-extrabold tracking-[0.2em] text-white">GH</span>
@@ -223,13 +223,22 @@
               <h4 class="mt-4 text-base font-extrabold text-ink">X / Twitter</h4>
               <p class="mt-1 text-sm leading-6 text-slate-500">支持静态账号池，也支持结合兴趣和 Scholar 做一次性 discovery。</p>
             </button>
+
+            <button type="button" class="source-pill rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left shadow-soft" data-source-toggle="arxiv" onclick="toggleSource('arxiv')">
+              <div class="flex items-center justify-between">
+                <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl text-xs font-extrabold tracking-[0.2em] text-white" style="background-color:#b31b1b">Ax</span>
+                <span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">可选</span>
+              </div>
+              <h4 class="mt-4 text-base font-extrabold text-ink">arXiv</h4>
+              <p class="mt-1 text-sm leading-6 text-slate-500">每日最新论文，基于你的兴趣描述做相关性打分和排序。</p>
+            </button>
           </div>
         </div>
       </div>
 
       <div class="space-y-6">
         <div id="mail-warning" class="hidden rounded-3xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm leading-7 text-amber-800 shadow-soft">
-          服务器还没有配置发件邮箱。请先打开 <a href="/admin" class="font-semibold underline">/admin</a> 完成 SMTP 配置，否则无法实际发送邮件。
+          服务器还没有配置发件邮箱。请先打开 <a href="/daily-recommender/admin" class="font-semibold underline">Admin</a> 完成 SMTP 配置，否则无法实际发送邮件。
         </div>
 
         <section class="glass-panel rounded-[2rem] border border-white/70 p-6 shadow-panel">
@@ -350,7 +359,8 @@
       }
     };
 
-    const API_BASE = window.location.origin;
+    const BASE_PATH = '/daily-recommender';
+    const API_BASE = window.location.origin + BASE_PATH;
 
     document.addEventListener('DOMContentLoaded', () => {
       loadMeta();
@@ -459,7 +469,7 @@
       const request = buildRequest();
 
       if (!state.meta.mail_enabled) {
-        showToast('服务器还没有配置发件邮箱，请先去 /admin 配置 SMTP。', 'warning');
+        showToast('服务器还没有配置发件邮箱，请先去 Admin 页面配置 SMTP。', 'warning');
         return;
       }
       if (request.sources.length === 0) {
@@ -495,7 +505,7 @@
       document.getElementById('send-button').disabled = true;
 
       const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-      const wsUrl = `${wsScheme}://${window.location.host}/ws/run`;
+      const wsUrl = `${wsScheme}://${window.location.host}${BASE_PATH}/ws/run`;
       state.ws = new WebSocket(wsUrl);
 
       state.ws.onopen = () => {
@@ -592,7 +602,7 @@
         groups[file.source].push(file);
       });
 
-      const groupOrder = ['reports', 'github', 'huggingface', 'twitter', 'ideas'];
+      const groupOrder = ['reports', 'github', 'huggingface', 'twitter', 'arxiv', 'ideas'];
       const sortedEntries = Object.entries(groups).sort((a, b) => {
         const ai = groupOrder.indexOf(a[0]);
         const bi = groupOrder.indexOf(b[0]);
@@ -628,7 +638,7 @@
                 <p class="text-sm font-semibold text-ink">${escapeHtml(file.name)}</p>
                 <p class="mt-1 text-xs text-slate-500">HTML 预览</p>
               </div>
-              <a href="${file.url}" target="_blank" rel="noreferrer" class="rounded-xl bg-white px-3 py-2 text-xs font-bold text-sea shadow-soft">
+              <a href="${BASE_PATH}${file.url}" target="_blank" rel="noreferrer" class="rounded-xl bg-white px-3 py-2 text-xs font-bold text-sea shadow-soft">
                 打开
               </a>
             </div>
@@ -723,6 +733,7 @@
         github: 'GitHub',
         huggingface: 'HuggingFace',
         twitter: 'X / Twitter',
+        arxiv: 'arXiv',
         ideas: 'Research Ideas'
       };
       return map[source] || source;

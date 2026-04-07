@@ -208,7 +208,7 @@
       <!-- Source Selection -->
       <section>
         <h3 class="text-lg font-semibold text-slate-800 mb-4">选择信息源</h3>
-        <div class="grid md:grid-cols-3 gap-4">
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           <!-- GitHub -->
           <div class="source-card glass-card rounded-2xl p-5 border border-slate-200/80 cursor-pointer"
                onclick="toggleSource('github')" id="source-github">
@@ -288,6 +288,33 @@
               <div class="flex items-center gap-2">
                 <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100">账号</span>
                 <span class="text-xs" id="twitter-accounts-count">0 配置</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- arXiv -->
+          <div class="source-card glass-card rounded-2xl p-5 border border-slate-200/80 cursor-pointer"
+               onclick="toggleSource('arxiv')" id="source-arxiv">
+            <div class="flex items-start justify-between mb-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm" style="background-color:#b31b1b">
+                  Ax
+                </div>
+                <div>
+                  <h4 class="font-semibold text-slate-800">arXiv</h4>
+                  <p class="text-xs text-slate-500">每日最新论文</p>
+                </div>
+              </div>
+              <input type="checkbox" class="checkbox-custom w-5 h-5 rounded-md border-slate-300" id="checkbox-arxiv">
+            </div>
+            <div class="space-y-2 text-sm text-slate-600">
+              <div class="flex items-center gap-2">
+                <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100">分类</span>
+                <span class="text-xs" id="arxiv-categories-display">cs.AI</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100">数量</span>
+                <span class="text-xs" id="arxiv-papers-display">60 papers</span>
               </div>
             </div>
           </div>
@@ -489,7 +516,7 @@
         </div>
 
         <!-- Twitter Config -->
-        <div>
+        <div class="mb-6 pb-6 border-b border-slate-100">
           <h4 class="font-medium text-slate-700 mb-3">X / Twitter</h4>
           <div class="space-y-3">
             <div>
@@ -503,6 +530,28 @@
 sama
 ..."
                         class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm font-mono"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- arXiv Config -->
+        <div>
+          <h4 class="font-medium text-slate-700 mb-3">arXiv</h4>
+          <div class="grid md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1.5">分类（空格分隔）</label>
+              <input type="text" id="config-arxiv-categories" placeholder="cs.AI cs.CL cs.CV"
+                     class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1.5">每分类最大抓取</label>
+              <input type="number" id="config-arxiv-max-entries" value="100" min="10" max="500"
+                     class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1.5">推荐论文数</label>
+              <input type="number" id="config-arxiv-max-papers" value="60" min="5" max="200"
+                     class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm">
             </div>
           </div>
         </div>
@@ -599,7 +648,8 @@ I'm not interested in:
       isRunning: false
     };
 
-    const API_BASE = window.location.origin;
+    const BASE_PATH = '/daily-recommender';
+    const API_BASE = window.location.origin + BASE_PATH;
 
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
@@ -679,6 +729,9 @@ I'm not interested in:
       document.getElementById('config-researcher-profile').value = c.researcher_profile || '';
       document.getElementById('config-twitter-api-key').value = c.x_rapidapi_key || '';
       document.getElementById('config-twitter-accounts').value = c.x_accounts || '';
+      document.getElementById('config-arxiv-categories').value = c.arxiv_categories || 'cs.AI';
+      document.getElementById('config-arxiv-max-entries').value = c.arxiv_max_entries || 100;
+      document.getElementById('config-arxiv-max-papers').value = c.arxiv_max_papers || 60;
 
       if (c.hf_content_types) {
         document.getElementById('config-hf-papers').checked = c.hf_content_types.includes('papers');
@@ -695,6 +748,8 @@ I'm not interested in:
         .filter(Boolean)
         .length;
       document.getElementById('twitter-accounts-count').textContent = `${accountCount} 配置`;
+      document.getElementById('arxiv-categories-display').textContent = state.config.arxiv_categories || 'cs.AI';
+      document.getElementById('arxiv-papers-display').textContent = `${state.config.arxiv_max_papers || 60} papers`;
     }
 
     // Save Config
@@ -723,7 +778,10 @@ I'm not interested in:
         description: document.getElementById('config-description').value,
         researcher_profile: document.getElementById('config-researcher-profile').value,
         x_rapidapi_key: document.getElementById('config-twitter-api-key').value,
-        x_accounts: document.getElementById('config-twitter-accounts').value
+        x_accounts: document.getElementById('config-twitter-accounts').value,
+        arxiv_categories: document.getElementById('config-arxiv-categories').value,
+        arxiv_max_entries: parseInt(document.getElementById('config-arxiv-max-entries').value),
+        arxiv_max_papers: parseInt(document.getElementById('config-arxiv-max-papers').value)
       };
 
       try {
@@ -762,7 +820,7 @@ I'm not interested in:
       document.querySelectorAll('button[id^="btn-"]').forEach(btn => btn.disabled = true);
 
       const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-      const wsUrl = `${wsScheme}://${window.location.host}/ws/run`;
+      const wsUrl = `${wsScheme}://${window.location.host}${BASE_PATH}/ws/run`;
       state.ws = new WebSocket(wsUrl);
 
       state.ws.onopen = () => {
@@ -982,7 +1040,7 @@ I'm not interested in:
         result.html_files.forEach(file => {
           html += `<div class="mb-6">
             <h4 class="font-medium text-slate-700 mb-2">${file.name}</h4>
-            <a href="${file.url}" target="_blank" class="text-emerald-600 hover:underline">查看邮件 HTML</a>
+            <a href="${BASE_PATH}${file.url}" target="_blank" class="text-emerald-600 hover:underline">查看邮件 HTML</a>
           </div>`;
         });
       }
@@ -1140,20 +1198,20 @@ I'm not interested in:
     function getTypeColor(type) {
       const colors = {
         github: 'bg-slate-800', huggingface: 'bg-yellow-500', twitter: 'bg-black',
-        report: 'bg-emerald-600', ideas: 'bg-orange-500', daily: 'bg-blue-500'
+        arxiv: 'bg-red-700', report: 'bg-emerald-600', ideas: 'bg-orange-500', daily: 'bg-blue-500'
       };
       return colors[type] || 'bg-slate-500';
     }
 
     function getTypeIcon(type) {
-      const icons = { github: 'GH', huggingface: 'HF', twitter: 'X', report: 'R', ideas: 'I', daily: 'D' };
+      const icons = { github: 'GH', huggingface: 'HF', twitter: 'X', arxiv: 'Ax', report: 'R', ideas: 'I', daily: 'D' };
       return icons[type] || '?';
     }
 
     function getTypeLabel(type) {
       const labels = {
         github: 'GitHub 推荐', huggingface: 'HuggingFace 推荐', twitter: 'Twitter 推荐',
-        report: '综合报告', ideas: '研究想法', daily: '每日推荐'
+        arxiv: 'arXiv 论文', report: '综合报告', ideas: '研究想法', daily: '每日推荐'
       };
       return labels[type] || type;
     }

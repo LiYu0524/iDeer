@@ -55,6 +55,9 @@ DEFAULT_CONFIG = {
     "x_rapidapi_key": "",
     "x_rapidapi_host": "twitter-api45.p.rapidapi.com",
     "x_accounts": "",
+    "arxiv_categories": "cs.AI",
+    "arxiv_max_entries": 100,
+    "arxiv_max_papers": 60,
 }
 
 app = FastAPI(title="Daily Recommender API", version="1.0.0")
@@ -248,6 +251,9 @@ class Config(BaseModel):
     x_rapidapi_key: str = ""
     x_rapidapi_host: str = "twitter-api45.p.rapidapi.com"
     x_accounts: str = ""
+    arxiv_categories: str = "cs.AI"
+    arxiv_max_entries: int = 100
+    arxiv_max_papers: int = 60
 
 
 class RunRequest(BaseModel):
@@ -277,6 +283,7 @@ def get_public_meta():
         "github_url": GITHUB_REPO_URL,
         "twitter_enabled": bool(config.get("x_rapidapi_key")),
         "mail_enabled": bool(config.get("smtp_server") and config.get("sender")),
+        "arxiv_enabled": True,
     }
 
 
@@ -316,6 +323,9 @@ DESCRIPTION_FILE=profiles/description.txt
 X_RAPIDAPI_KEY={config.x_rapidapi_key}
 X_RAPIDAPI_HOST={config.x_rapidapi_host}
 X_ACCOUNTS_FILE=profiles/x_accounts.txt
+ARXIV_CATEGORIES={config.arxiv_categories}
+ARXIV_MAX_ENTRIES={config.arxiv_max_entries}
+ARXIV_MAX_PAPERS={config.arxiv_max_papers}
 """
         (PROJECT_ROOT / ".env").write_text(env_content, encoding="utf-8")
 
@@ -483,6 +493,17 @@ async def run_daily_recommender(req: RunRequest):
                 ])
                 if profile_urls:
                     cmd.extend(["--x_profile_urls", *profile_urls])
+
+        if "arxiv" in req.sources:
+            arxiv_cats = config.get("arxiv_categories", "cs.AI")
+            cat_list = [c.strip() for c in arxiv_cats.split() if c.strip()]
+            cmd.extend(["--arxiv_categories", *cat_list])
+            cmd.extend([
+                "--arxiv_max_entries",
+                str(config.get("arxiv_max_entries", 100)),
+                "--arxiv_max_papers",
+                str(config.get("arxiv_max_papers", 60)),
+            ])
 
         process = await asyncio.create_subprocess_exec(
             *cmd,
@@ -663,10 +684,10 @@ if __name__ == "__main__":
 ╔════════════════════════════════════════════════════════╗
 ║          Daily Recommender Web Server                  ║
 ╠════════════════════════════════════════════════════════╣
-║  Public UI: http://localhost:8080/                    ║
-║  Admin UI:  http://localhost:8080/admin               ║
-║  API Docs:  http://localhost:8080/docs                ║
+║  Public UI: http://localhost:8090/                    ║
+║  Admin UI:  http://localhost:8090/admin               ║
+║  API Docs:  http://localhost:8090/docs                ║
 ╚════════════════════════════════════════════════════════╝
     """)
 
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    uvicorn.run(app, host="0.0.0.0", port=8090)
