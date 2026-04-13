@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       sources:
-        description: "Space-separated sources, e.g. 'github arxiv semanticscholar huggingface'"
+        description: "Space-separated sources, leave blank to use IDEER_DAILY_SOURCES"
         required: false
-        default: "github arxiv semanticscholar huggingface"
+        default: ""
       report_title:
         description: "Optional report title override"
         required: false
