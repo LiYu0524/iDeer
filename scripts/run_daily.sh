@@ -11,7 +11,18 @@ if [ -f .env ]; then
   set +a
 fi
 
-PYTHON_BIN="${PYTHON_BIN:-$REPO_ROOT/.venv/bin/python}"
+if [ -n "${PYTHON_BIN:-}" ]; then
+  PYTHON_BIN="$PYTHON_BIN"
+elif [ -x "$REPO_ROOT/.venv/bin/python" ]; then
+  PYTHON_BIN="$REPO_ROOT/.venv/bin/python"
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON_BIN="$(command -v python3)"
+elif command -v python >/dev/null 2>&1; then
+  PYTHON_BIN="$(command -v python)"
+else
+  echo "No usable Python interpreter found." >&2
+  exit 1
+fi
 SOURCES=(${DAILY_SOURCES:-arxiv semanticscholar huggingface})
 ARXIV_CATEGORIES=(${ARXIV_CATEGORIES:-cs.AI cs.CL cs.LG})
 GH_LANGUAGES=(${GH_LANGUAGES:-all})
