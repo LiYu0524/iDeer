@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { ResultData } from '../../../../lib/types';
 import { getResult } from '../../../../lib/api';
 import { escapeHtml } from '../../../../lib/utils';
@@ -33,11 +34,11 @@ export function ResultModal({ source, date, onClose, showToast }: ResultModalPro
     };
   }, [source, date, showToast]);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="absolute inset-4 flex flex-col rounded-2xl shadow-2xl md:inset-10">
-        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
+      <div className="absolute inset-4 flex min-h-0 flex-col rounded-2xl bg-white shadow-2xl md:inset-10">
+        <div className="shrink-0 flex items-center justify-between border-b border-slate-200 px-6 py-4">
           <h3 className="font-semibold text-slate-800">{source} - {date}</h3>
           <button
             type="button"
@@ -49,7 +50,7 @@ export function ResultModal({ source, date, onClose, showToast }: ResultModalPro
             </svg>
           </button>
         </div>
-        <div className="flex-1 overflow-auto bg-white p-6">
+        <div className="min-h-0 flex-1 overflow-auto p-6">
           {loading && <p className="text-slate-400">加载中...</p>}
           {!loading && data && (
             <>
@@ -102,6 +103,7 @@ export function ResultModal({ source, date, onClose, showToast }: ResultModalPro
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { PublicMeta } from '../../../lib/types';
 
 interface HeaderProps {
@@ -9,9 +9,21 @@ interface HeaderProps {
 }
 
 export function Header({ mode, onModeChange, meta, isDesktopEmbed }: HeaderProps) {
-  const quickRef = useRef<HTMLButtonElement>(null);
-  const customRef = useRef<HTMLButtonElement>(null);
-  const activeRef = mode === 'quick' ? quickRef : customRef;
+  const refs = useRef<Record<string, HTMLButtonElement>>({});
+  const [pos, setPos] = useState({ left: 0, top: 0, width: 0, height: 0, ready: false });
+
+  useLayoutEffect(() => {
+    const btn = refs.current[mode];
+    if (btn) {
+      setPos({
+        left: btn.offsetLeft,
+        top: btn.offsetTop,
+        width: btn.offsetWidth,
+        height: btn.offsetHeight,
+        ready: true,
+      });
+    }
+  }, [mode]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/60 bg-white/70 backdrop-blur-xl">
@@ -32,22 +44,19 @@ export function Header({ mode, onModeChange, meta, isDesktopEmbed }: HeaderProps
 
         <div className="flex items-center gap-2">
           <div className="glass-panel relative flex rounded-2xl border border-slate-200/80 p-1 shadow-soft">
-            {/* Sliding indicator */}
-            <span
-              className="absolute top-1 rounded-xl bg-slate-900 text-white shadow-lg transition-all duration-250 ease-out"
-              style={
-                activeRef.current
-                  ? {
-                      left: activeRef.current.offsetLeft,
-                      top: activeRef.current.offsetTop,
-                      width: activeRef.current.offsetWidth,
-                      height: activeRef.current.offsetHeight,
-                    }
-                  : undefined
-              }
-            />
+            {pos.ready && (
+              <span
+                className="absolute top-1 rounded-xl bg-slate-900 text-white shadow-lg transition-all duration-250 ease-out"
+                style={{
+                  left: pos.left,
+                  top: pos.top,
+                  width: pos.width,
+                  height: pos.height,
+                }}
+              />
+            )}
             <button
-              ref={quickRef}
+              ref={(el) => { if (el) refs.current['quick'] = el; }}
               type="button"
               className="relative z-10 flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors duration-200"
               style={{ color: mode === 'quick' ? 'white' : '#475569' }}
@@ -59,7 +68,7 @@ export function Header({ mode, onModeChange, meta, isDesktopEmbed }: HeaderProps
               快速版
             </button>
             <button
-              ref={customRef}
+              ref={(el) => { if (el) refs.current['custom'] = el; }}
               type="button"
               className="relative z-10 flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors duration-200"
               style={{ color: mode === 'custom' ? 'white' : '#475569' }}
