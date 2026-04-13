@@ -105,6 +105,7 @@ jobs:
 
       - name: Run daily report pipeline
         run: |
+          set -o pipefail
           bash scripts/run_daily.sh 2>&1 | tee report-run.log
 
       - name: Verify report output exists
