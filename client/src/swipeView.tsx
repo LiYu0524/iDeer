@@ -34,6 +34,7 @@ export function SwipeView(props: {
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
   const dragging = useRef(false);
+  const animating = useRef(false);
   const startX = useRef(0);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -55,22 +56,41 @@ export function SwipeView(props: {
 
   const current = index < queue.length ? queue[index] : null;
 
-  const handleSwipe = useCallback(async (action: "like" | "dislike") => {
-    if (!current) return;
+  const handleSwipe = useCallback(async (action: "like" | "dislike", fromGesture = false) => {
+    if (!current || animating.current) return;
+    animating.current = true;
     const dir = action === "like" ? "right" : "left";
-    setExiting(dir);
     setLastSwiped({ item: current, idx: index });
 
-    try {
-      const res = await sendSwipeFeedback(current.url, action, current._source_type, current.title);
-      setStats(res.stats);
-    } catch { /* ignore */ }
+    // Fire-and-forget feedback
+    sendSwipeFeedback(current.url, action, current._source_type, current.title)
+      .then((res) => setStats(res.stats))
+      .catch(() => {});
 
-    setTimeout(() => {
-      setExiting(null);
-      setDragX(0);
-      setIndex((i) => i + 1);
-    }, 250);
+    if (fromGesture) {
+      // Gesture already has dragX set — go straight to exit
+      setExiting(dir);
+      setTimeout(() => {
+        animating.current = false;
+        setExiting(null);
+        setDragX(0);
+        setIndex((i) => i + 1);
+      }, 300);
+    } else {
+      // Button/keyboard: two-phase animation
+      // Phase 1: simulate drag (card slides + color overlay)
+      setDragX(dir === "right" ? 150 : -150);
+      setTimeout(() => {
+        // Phase 2: fly out
+        setExiting(dir);
+        setDragX(0);
+        setTimeout(() => {
+          animating.current = false;
+          setExiting(null);
+          setIndex((i) => i + 1);
+        }, 300);
+      }, 200);
+    }
   }, [current, index]);
 
   const handleUndo = useCallback(() => {
@@ -94,9 +114,9 @@ export function SwipeView(props: {
     if (!dragging.current) return;
     dragging.current = false;
     if (dragX > 100) {
-      void handleSwipe("like");
+      void handleSwipe("like", true);
     } else if (dragX < -100) {
-      void handleSwipe("dislike");
+      void handleSwipe("dislike", true);
     } else {
       setDragX(0);
     }
@@ -125,10 +145,11 @@ export function SwipeView(props: {
   };
 
   // Card transform
+  const isDraggingByPointer = dragging.current;
   const cardStyle = exiting
-    ? { transform: `translateX(${exiting === "right" ? 600 : -600}px) rotate(${exiting === "right" ? 15 : -15}deg)`, transition: "transform 0.25s ease-out", opacity: 0 }
+    ? { transform: `translateX(${exiting === "right" ? 600 : -600}px) rotate(${exiting === "right" ? 15 : -15}deg)`, transition: "transform 0.3s ease-out, opacity 0.3s", opacity: 0 }
     : dragX !== 0
-      ? { transform: `translateX(${dragX}px) rotate(${dragX * 0.04}deg)`, transition: "none" }
+      ? { transform: `translateX(${dragX}px) rotate(${dragX * 0.04}deg)`, transition: isDraggingByPointer ? "none" : "transform 0.2s ease" }
       : { transform: "translateX(0) rotate(0)", transition: "transform 0.2s ease" };
 
   const overlayOpacity = Math.min(Math.abs(dragX) / 150, 0.4);
