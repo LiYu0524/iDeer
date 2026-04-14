@@ -177,8 +177,8 @@ export function SwipeView(props: {
         {/* Title */}
         <h2 className="swipe-card-title">{current.title}</h2>
 
-        {/* Summary */}
-        <div className="swipe-card-summary">{current.summary}</div>
+        {/* Summary — scrollable, stops pointer events from triggering swipe */}
+        <div className="swipe-card-summary" onPointerDown={(e) => e.stopPropagation()}>{current.summary}</div>
 
         {/* Metadata chips */}
         <div className="swipe-meta-row">

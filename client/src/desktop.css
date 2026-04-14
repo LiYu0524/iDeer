@@ -1976,11 +1976,10 @@ details summary {
   font-size: 14px;
   line-height: 1.7;
   color: var(--secondary, #374151);
-  max-height: 9.5em;
-  overflow: hidden;
-  mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+  max-height: 12em;
+  overflow-y: auto;
   margin-bottom: 12px;
+  padding-right: 4px;
 }
 
 .swipe-meta-row {
