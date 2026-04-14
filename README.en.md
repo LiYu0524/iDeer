@@ -101,6 +101,7 @@ vim .env
 
 # 3. Write your interest profile
 vim profiles/description.txt
+vim profiles/researcher_profile.md   # Recommended as well if you plan to generate ideas later
 
 # 4. Run a first dry run without sending emails
 python main.py --sources arxiv semanticscholar huggingface --save --skip_source_emails

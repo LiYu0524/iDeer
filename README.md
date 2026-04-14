@@ -113,6 +113,7 @@ pip install -r requirements-web.txt
 cp .env.example .env
 vim .env   # 填 MODEL_NAME, BASE_URL, API_KEY
 vim profiles/description.txt
+vim profiles/researcher_profile.md   # 如果后面要生成 ideas，建议一起改
 
 python main.py --sources arxiv semanticscholar huggingface --save --skip_source_emails
 ```
