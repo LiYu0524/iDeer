@@ -402,6 +402,11 @@ button,
 .nav-stack,
 .sidebar-footer,
 .workspace,
+.required-mark {
+  color: #ef4444;
+  font-weight: 600;
+}
+
 .home-slogan {
   font-size: 22px;
   font-weight: 700;
@@ -1540,6 +1545,16 @@ pre {
   box-shadow: 0 24px 64px rgba(15, 23, 42, 0.2);
   padding: 16px;
   pointer-events: auto;
+}
+
+.control-center-panel .metric-actions {
+  position: sticky;
+  bottom: -16px;
+  background: var(--panel-strong);
+  padding: 12px 0;
+  margin: 0 -16px;
+  padding-left: 16px;
+  border-top: 1px solid var(--line);
 }
 
 .control-center-window {

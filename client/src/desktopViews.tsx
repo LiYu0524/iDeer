@@ -484,7 +484,7 @@ export function HomeView(props: {
         <section ref={sourcePanelRef} className="content-panel">
           <div className="section-heading">
             <div>
-              <h3>{props.copy.home.sources}</h3>
+              <h3>{props.copy.home.sources} <span className="required-mark">*</span></h3>
             </div>
 
             <div className="metric-actions home-action-row">
@@ -534,6 +534,7 @@ export function HomeView(props: {
             </div>
           </div>
 
+          {/* 1. 信息源 */}
           <div className="source-picker-grid">
             {props.sources.map((source) => (
               <label key={source.key} data-source={source.key} className={source.selected ? "source-picker-card active" : "source-picker-card"}>
@@ -557,79 +558,9 @@ export function HomeView(props: {
             ))}
           </div>
 
-          <div className="form-grid two">
-            <label className="form-field">
-              <span>{props.copy.workbench.receiver}</span>
-              <input value={props.runForm.receiver} onChange={(event) => props.onChangeRunForm("receiver", event.target.value)} />
-            </label>
-
-            <div className="form-field">
-              <span>{props.copy.workbench.deliveryMode}</span>
-              <div className="segmented-toggle-group delivery-mode-control">
-                <button
-                  type="button"
-                  data-mode="source"
-                  className={sourceWiseSelected ? "segmented-toggle-button adaptive-button active" : "segmented-toggle-button adaptive-button"}
-                  onClick={() => toggleDeliveryMode("source")}
-                  title={props.copy.workbench.sourceEmails}
-                  aria-label={props.copy.workbench.sourceEmails}
-                  aria-pressed={sourceWiseSelected}
-                >
-                  <ControlButtonContent icon={faInbox} label={props.copy.workbench.sourceEmails} />
-                </button>
-                <button
-                  type="button"
-                  data-mode="combined"
-                  className={combinedSelected ? "segmented-toggle-button adaptive-button active" : "segmented-toggle-button adaptive-button"}
-                  onClick={() => toggleDeliveryMode("combined")}
-                  title={props.copy.workbench.combinedReport}
-                  aria-label={props.copy.workbench.combinedReport}
-                  aria-pressed={combinedSelected}
-                >
-                  <ControlButtonContent icon={faLayerGroup} label={props.copy.workbench.combinedReport} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="feature-toggle-row">
-            <button
-              type="button"
-              data-feature="report"
-              className={props.runForm.generate_report ? "feature-toggle-button adaptive-button active" : "feature-toggle-button adaptive-button"}
-              onClick={() => props.onChangeRunForm("generate_report", !props.runForm.generate_report)}
-              title={props.copy.workbench.report}
-              aria-label={props.copy.workbench.report}
-              aria-pressed={props.runForm.generate_report}
-            >
-              <ControlButtonContent icon={faFileLines} label={props.copy.workbench.report} />
-            </button>
-            <button
-              type="button"
-              data-feature="ideas"
-              className={props.runForm.generate_ideas ? "feature-toggle-button adaptive-button active" : "feature-toggle-button adaptive-button"}
-              onClick={() => props.onChangeRunForm("generate_ideas", !props.runForm.generate_ideas)}
-              title={props.copy.workbench.ideas}
-              aria-label={props.copy.workbench.ideas}
-              aria-pressed={props.runForm.generate_ideas}
-            >
-              <ControlButtonContent icon={faLightbulb} label={props.copy.workbench.ideas} />
-            </button>
-            <button
-              type="button"
-              data-feature="save"
-              className={props.runForm.save ? "feature-toggle-button adaptive-button active" : "feature-toggle-button adaptive-button"}
-              onClick={() => props.onChangeRunForm("save", !props.runForm.save)}
-              title={props.copy.workbench.save}
-              aria-label={props.copy.workbench.save}
-              aria-pressed={props.runForm.save}
-            >
-              <ControlButtonContent icon={faFloppyDisk} label={props.copy.workbench.save} />
-            </button>
-          </div>
-
+          {/* 2. 兴趣描述 */}
           <div className="form-field">
-            <span>{props.copy.workbench.description}</span>
+            <span>{props.copy.workbench.description} <span className="required-mark">*</span></span>
             <div className="interest-tag-editor">
               <div className="interest-tag-grid">
                 <section className="interest-tag-panel positive">
@@ -707,6 +638,79 @@ export function HomeView(props: {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* 3. 投递模式 + 接收邮箱 */}
+          <div className="form-grid two">
+            <div className="form-field">
+              <span>{props.copy.workbench.deliveryMode}</span>
+              <div className="segmented-toggle-group delivery-mode-control">
+                <button
+                  type="button"
+                  data-mode="source"
+                  className={sourceWiseSelected ? "segmented-toggle-button adaptive-button active" : "segmented-toggle-button adaptive-button"}
+                  onClick={() => toggleDeliveryMode("source")}
+                  title={props.copy.workbench.sourceEmails}
+                  aria-label={props.copy.workbench.sourceEmails}
+                  aria-pressed={sourceWiseSelected}
+                >
+                  <ControlButtonContent icon={faInbox} label={props.copy.workbench.sourceEmails} />
+                </button>
+                <button
+                  type="button"
+                  data-mode="combined"
+                  className={combinedSelected ? "segmented-toggle-button adaptive-button active" : "segmented-toggle-button adaptive-button"}
+                  onClick={() => toggleDeliveryMode("combined")}
+                  title={props.copy.workbench.combinedReport}
+                  aria-label={props.copy.workbench.combinedReport}
+                  aria-pressed={combinedSelected}
+                >
+                  <ControlButtonContent icon={faLayerGroup} label={props.copy.workbench.combinedReport} />
+                </button>
+              </div>
+            </div>
+
+            <label className="form-field">
+              <span>{props.copy.workbench.receiver}</span>
+              <input value={props.runForm.receiver} onChange={(event) => props.onChangeRunForm("receiver", event.target.value)} />
+            </label>
+          </div>
+
+          {/* 4. Feature toggles */}
+          <div className="feature-toggle-row">
+            <button
+              type="button"
+              data-feature="report"
+              className={props.runForm.generate_report ? "feature-toggle-button adaptive-button active" : "feature-toggle-button adaptive-button"}
+              onClick={() => props.onChangeRunForm("generate_report", !props.runForm.generate_report)}
+              title={props.copy.workbench.report}
+              aria-label={props.copy.workbench.report}
+              aria-pressed={props.runForm.generate_report}
+            >
+              <ControlButtonContent icon={faFileLines} label={props.copy.workbench.report} />
+            </button>
+            <button
+              type="button"
+              data-feature="ideas"
+              className={props.runForm.generate_ideas ? "feature-toggle-button adaptive-button active" : "feature-toggle-button adaptive-button"}
+              onClick={() => props.onChangeRunForm("generate_ideas", !props.runForm.generate_ideas)}
+              title={props.copy.workbench.ideas}
+              aria-label={props.copy.workbench.ideas}
+              aria-pressed={props.runForm.generate_ideas}
+            >
+              <ControlButtonContent icon={faLightbulb} label={props.copy.workbench.ideas} />
+            </button>
+            <button
+              type="button"
+              data-feature="save"
+              className={props.runForm.save ? "feature-toggle-button adaptive-button active" : "feature-toggle-button adaptive-button"}
+              onClick={() => props.onChangeRunForm("save", !props.runForm.save)}
+              title={props.copy.workbench.save}
+              aria-label={props.copy.workbench.save}
+              aria-pressed={props.runForm.save}
+            >
+              <ControlButtonContent icon={faFloppyDisk} label={props.copy.workbench.save} />
+            </button>
           </div>
         </section>
 
