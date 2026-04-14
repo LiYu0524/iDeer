@@ -1908,6 +1908,38 @@ details summary {
   user-select: none;
 }
 
+.swipe-source-filter {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.swipe-source-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: var(--panel, #fff);
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.4;
+  transition: opacity 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.swipe-source-icon.active {
+  opacity: 1;
+}
+.swipe-source-icon:hover {
+  opacity: 0.8;
+}
+.swipe-source-icon img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
 .swipe-card {
   position: relative;
   width: 100%;

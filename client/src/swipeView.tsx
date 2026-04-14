@@ -4,6 +4,12 @@ import { faHeart, faXmark, faUndo, faArrowUpRightFromSquare, faCheck } from "@fo
 import { getSwipeQueue, sendSwipeFeedback, applySwipeFeedback } from "./api";
 import type { SwipeItem, SwipeStats } from "./types";
 import type { AppCopy } from "./copy";
+import iconArxiv from "./assets/icon_arxiv.svg";
+import iconHF from "./assets/icon_hf.svg";
+import iconGitHub from "./assets/icon_github.svg";
+import iconPubMed from "./assets/icon_pubmed.svg";
+import iconSS from "./assets/icon_ss.svg";
+import iconX from "./assets/icon_x.black.svg";
 
 const SOURCE_COLORS: Record<string, string> = {
   arxiv: "#b31b1b",
@@ -11,10 +17,22 @@ const SOURCE_COLORS: Record<string, string> = {
   github: "#24292e",
   semanticscholar: "#1857b6",
   twitter: "#1d9bf0",
+  pubmed: "#2e7d32",
 };
 
+const SOURCE_ICONS: Record<string, string> = {
+  arxiv: iconArxiv,
+  huggingface: iconHF,
+  github: iconGitHub,
+  semanticscholar: iconSS,
+  twitter: iconX,
+  pubmed: iconPubMed,
+};
+
+const ALL_SOURCES = ["arxiv", "huggingface", "github", "semanticscholar", "pubmed", "twitter"] as const;
+
 function sourceBadgeLabel(source: string) {
-  const map: Record<string, string> = { arxiv: "arXiv", huggingface: "HuggingFace", github: "GitHub", semanticscholar: "S2", twitter: "X" };
+  const map: Record<string, string> = { arxiv: "arXiv", huggingface: "HuggingFace", github: "GitHub", semanticscholar: "S2", twitter: "X", pubmed: "PubMed" };
   return map[source] || source;
 }
 
@@ -24,6 +42,7 @@ export function SwipeView(props: {
   onOpenUrl: (url: string) => void;
 }) {
   const { copy } = props;
+  const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set(ALL_SOURCES));
   const [queue, setQueue] = useState<SwipeItem[]>([]);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -38,10 +57,11 @@ export function SwipeView(props: {
   const startX = useRef(0);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const loadQueue = useCallback(async () => {
+  const loadQueue = useCallback(async (sources?: Set<string>) => {
+    const srcList = [...(sources ?? selectedSources)];
     setLoading(true);
     try {
-      const data = await getSwipeQueue([], 30, 50);
+      const data = await getSwipeQueue(srcList, 30, 50);
       setQueue(data.items);
       setIndex(0);
       setStats({ liked: data.total_swiped, disliked: 0, total: data.total_swiped });
@@ -50,9 +70,22 @@ export function SwipeView(props: {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedSources]);
 
   useEffect(() => { if (props.backendHealthy) void loadQueue(); }, [props.backendHealthy, loadQueue]);
+
+  const toggleSource = (source: string) => {
+    setSelectedSources((prev) => {
+      const next = new Set(prev);
+      if (next.has(source)) {
+        if (next.size > 1) next.delete(source); // keep at least one
+      } else {
+        next.add(source);
+      }
+      void loadQueue(next);
+      return next;
+    });
+  };
 
   const current = index < queue.length ? queue[index] : null;
 
@@ -162,6 +195,13 @@ export function SwipeView(props: {
   if (!current) {
     return (
       <div className="swipe-container">
+        <div className="swipe-source-filter">
+          {ALL_SOURCES.map((src) => (
+            <button key={src} className={selectedSources.has(src) ? "swipe-source-icon active" : "swipe-source-icon"} onClick={() => toggleSource(src)} title={sourceBadgeLabel(src)} style={{ borderColor: selectedSources.has(src) ? (SOURCE_COLORS[src] || "#666") : "transparent" }}>
+              <img src={SOURCE_ICONS[src]} alt={src} />
+            </button>
+          ))}
+        </div>
         <div className="swipe-empty-card">
           <p className="swipe-empty-title">{copy.swipe?.empty ?? "No more items"}</p>
           <p className="swipe-empty-sub">{copy.swipe?.emptyHint ?? "Run a digest first or expand the date range."}</p>
@@ -180,6 +220,21 @@ export function SwipeView(props: {
 
   return (
     <div className="swipe-container">
+      {/* Source filter bar */}
+      <div className="swipe-source-filter">
+        {ALL_SOURCES.map((src) => (
+          <button
+            key={src}
+            className={selectedSources.has(src) ? "swipe-source-icon active" : "swipe-source-icon"}
+            onClick={() => toggleSource(src)}
+            title={sourceBadgeLabel(src)}
+            style={{ borderColor: selectedSources.has(src) ? (SOURCE_COLORS[src] || "#666") : "transparent" }}
+          >
+            <img src={SOURCE_ICONS[src]} alt={src} />
+          </button>
+        ))}
+      </div>
+
       <div className="swipe-card" ref={cardRef} style={cardStyle}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
       >
