@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { PublicMeta } from '../types';
-import { getMeta } from '../api';
+import type { PublicMeta } from '../../../lib/types';
+import { getMeta } from '../../../lib/api';
 
 const DEFAULT_META: PublicMeta = {
   github_url: 'https://github.com/LiYu0524/daily-recommender',

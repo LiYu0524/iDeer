@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { ToastProvider } from "./lib/hooks/useToast";
+import { ToastProvider } from "./hooks/useToast";
 import { PublicPage } from "./pages/public/PublicPage";
 import { AdminPage } from "./pages/admin/AdminPage";
 

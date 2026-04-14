@@ -5,10 +5,9 @@ interface HeaderProps {
   mode: 'quick' | 'custom';
   onModeChange: (mode: 'quick' | 'custom') => void;
   meta: PublicMeta;
-  isDesktopEmbed: boolean;
 }
 
-export function Header({ mode, onModeChange, meta, isDesktopEmbed }: HeaderProps) {
+export function Header({ mode, onModeChange, meta }: HeaderProps) {
   const refs = useRef<Record<string, HTMLButtonElement>>({});
   const [pos, setPos] = useState({ left: 0, top: 0, width: 0, height: 0, ready: false });
 
@@ -88,14 +87,12 @@ export function Header({ mode, onModeChange, meta, isDesktopEmbed }: HeaderProps
             GitHub 仓库
           </a>
 
-          {!isDesktopEmbed && (
-            <a
-              href="/admin"
-              className="hidden rounded-2xl px-3 py-2 text-sm font-semibold text-slate-500 transition hover:bg-white hover:text-slate-800 md:inline-flex"
-            >
-              后台
-            </a>
-          )}
+          <a
+            href="/admin"
+            className="hidden rounded-2xl px-3 py-2 text-sm font-semibold text-slate-500 transition hover:bg-white hover:text-slate-800 md:inline-flex"
+          >
+            后台
+          </a>
         </div>
       </div>
     </header>

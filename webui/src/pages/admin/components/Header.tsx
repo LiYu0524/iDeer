@@ -10,13 +10,10 @@ const TABS: { key: AdminTab; label: string }[] = [
 interface HeaderProps {
   activeTab: AdminTab;
   onTabChange: (tab: AdminTab) => void;
-  hidden?: boolean;
 }
 
-export function Header({ activeTab, onTabChange, hidden }: HeaderProps) {
+export function Header({ activeTab, onTabChange }: HeaderProps) {
   const navigate = useNavigate();
-
-  if (hidden) return null;
 
   return (
     <header className="sticky top-0 z-50 glass-panel border-b border-slate-200/80">

@@ -14,21 +14,6 @@ body {
     linear-gradient(180deg, #f7fbff 0%, #f6f7fb 42%, #ffffff 100%);
 }
 
-body.desktop-embed {
-  background:
-    radial-gradient(circle at 20% 10%, rgba(15, 118, 110, 0.08), transparent 24%),
-    linear-gradient(180deg, #f8fbff 0%, #f4f7fb 100%);
-}
-
-body.desktop-embed header {
-  display: none;
-}
-
-body.desktop-embed main {
-  max-width: none;
-  padding: 28px 24px 36px;
-}
-
 .glass-panel {
   background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(20px);

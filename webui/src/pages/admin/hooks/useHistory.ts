@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import type { HistoryEntry } from '../types';
-import { getHistory } from '../api';
+import type { HistoryEntry } from '../../../lib/types';
+import { getHistory } from '../../../lib/api';
 
 export function useHistory() {
   const [entries, setEntries] = useState<HistoryEntry[]>([]);

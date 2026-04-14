@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { AdminTab } from '../../lib/types';
-import { useToast } from '../../lib/hooks/useToast';
-import { useConfig } from '../../lib/hooks/useConfig';
-import { useRunState } from '../../lib/hooks/useRunState';
-import { useHistory } from '../../lib/hooks/useHistory';
-import { useDesktopEmbed } from '../../lib/hooks/useDesktopEmbed';
+import { useToast } from '../../hooks/useToast';
+import { useConfig } from './hooks/useConfig';
+import { useRunState } from './hooks/useRunState';
+import { useHistory } from './hooks/useHistory';
 import { Toast } from '../../components/Toast';
 import { Header } from './components/Header';
 import { DashboardView } from './components/dashboard/DashboardView';
@@ -12,7 +11,6 @@ import { ConfigView } from './components/config/ConfigView';
 import { HistoryView } from './components/records/HistoryView';
 
 export function AdminPage() {
-  const isDesktopEmbed = useDesktopEmbed();
   const { showToast } = useToast();
   const config = useConfig();
   const runState = useRunState();
@@ -33,13 +31,6 @@ export function AdminPage() {
     history.reload();
   }, []);
 
-  // Apply desktop embed body class
-  useEffect(() => {
-    if (isDesktopEmbed) {
-      document.body.classList.add('desktop-embed');
-    }
-  }, [isDesktopEmbed]);
-
   // Refresh history after a successful run
   useEffect(() => {
     if (runState.visible && runState.files.length > 0 && !runState.isRunning) {
@@ -49,11 +40,11 @@ export function AdminPage() {
 
   return (
     <>
-      <Header activeTab={activeTab} onTabChange={handleTabChange} hidden={isDesktopEmbed} />
+      <Header activeTab={activeTab} onTabChange={handleTabChange} />
 
       <main
         key={tabKey}
-        className={`admin-tab-content mx-auto max-w-6xl px-4 py-8 md:px-8 ${isDesktopEmbed ? '!max-w-none px-6 py-7' : ''}`}
+        className="admin-tab-content mx-auto max-w-6xl px-4 py-8 md:px-8"
       >
         {activeTab === 'dashboard' && (
           <DashboardView

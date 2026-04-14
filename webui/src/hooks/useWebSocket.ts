@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createRunWebSocket } from '../api';
+import { createRunWebSocket } from '../lib/api';
 
 export function useWebSocket(path: string | null) {
   const wsRef = useRef<WebSocket | null>(null);

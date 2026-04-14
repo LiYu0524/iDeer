@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
-import type { AdminConfig } from '../types';
-import { getConfig, saveConfig } from '../api';
+import type { AdminConfig } from '../../../lib/types';
+import { getConfig, saveConfig } from '../../../lib/api';
 
 const DEFAULT_CONFIG: AdminConfig = {
   desktop_python_path: '',

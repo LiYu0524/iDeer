@@ -6,10 +6,9 @@ import type {
   WsMessage,
 } from '../../lib/types';
 import { updateProgress } from '../../lib/utils';
-import { useToast } from '../../lib/hooks/useToast';
-import { useMeta } from '../../lib/hooks/useMeta';
-import { useDesktopEmbed } from '../../lib/hooks/useDesktopEmbed';
-import { useWebSocket } from '../../lib/hooks/useWebSocket';
+import { useToast } from '../../hooks/useToast';
+import { useMeta } from './hooks/useMeta';
+import { useWebSocket } from '../../hooks/useWebSocket';
 import { Toast } from '../../components/Toast';
 import { Header } from './components/Header';
 import { HeroSection } from './components/HeroSection';
@@ -21,7 +20,6 @@ import { ResultPanel } from './components/ResultPanel';
 
 export function PublicPage() {
   const { meta } = useMeta();
-  const isDesktopEmbed = useDesktopEmbed();
   const { showToast } = useToast();
   const ws = useWebSocket('/ws/run');
 
@@ -50,13 +48,6 @@ export function PublicPage() {
       });
     }
   }, [meta.twitter_enabled]);
-
-  // Apply desktop embed class
-  useEffect(() => {
-    if (isDesktopEmbed) {
-      document.body.classList.add('desktop-embed');
-    }
-  }, [isDesktopEmbed]);
 
   const toggleSource = useCallback(
     (source: string) => {
@@ -214,11 +205,10 @@ export function PublicPage() {
         mode={mode}
         onModeChange={(m) => { setMode(m); setModeKey((k) => k + 1); }}
         meta={meta}
-        isDesktopEmbed={isDesktopEmbed}
       />
 
       <main
-        className={`mx-auto max-w-6xl px-4 py-10 md:px-8 md:py-14 ${isDesktopEmbed ? '!max-w-none px-6 py-7' : ''}`}
+        className="mx-auto max-w-6xl px-4 py-10 md:px-8 md:py-14"
       >
         <section key={modeKey} className="page-enter space-y-6">
           <HeroSection />

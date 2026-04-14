@@ -41,6 +41,9 @@ src/
   App.tsx                          # 路由入口
   main.tsx                         # 应用入口
   index.css                        # Tailwind 基础样式 + 自定义 CSS
+  hooks/                           # 跨页面共享 Hook
+    useToast.tsx                   # 通知状态（Context）
+    useWebSocket.ts                # WebSocket 连接管理
   components/                      # 跨页面共享组件
     MarkdownRender.tsx             # Markdown 渲染
     Toast.tsx                      # 通知组件
@@ -49,17 +52,11 @@ src/
     types.ts                       # 类型定义（含 AdminConfig / HistoryEntry 等）
     constants.ts                   # 常量（含 TYPE_COLORS / TYPE_LABELS 等）
     utils.ts                       # 工具函数
-    hooks/
-      useMeta.ts                   # 公开页元信息获取
-      useWebSocket.ts              # WebSocket 管理
-      useToast.tsx                 # 通知状态
-      useDesktopEmbed.ts           # 桌面嵌入检测
-      useConfig.ts                 # 配置加载/编辑/保存
-      useHistory.ts                # 历史记录加载
-      useRunState.ts               # WebSocket 运行生命周期
   pages/
     public/
       PublicPage.tsx               # 公开页主组件
+      hooks/
+        useMeta.ts                 # 公开页元信息获取
       components/
         Header.tsx                 # 页头 + 模式切换
         HeroSection.tsx            # 标题区域
@@ -73,6 +70,10 @@ src/
         FileCard.tsx               # 文件卡片
     admin/                         # 管理后台
       AdminPage.tsx                # 顶层编排（Tab 切换 + Hook 调用）
+      hooks/
+        useConfig.ts               # 配置加载/编辑/保存
+        useHistory.ts              # 历史记录加载
+        useRunState.ts             # WebSocket 运行生命周期
       components/
         Header.tsx                 # 导航栏 + Tab 按钮
         config/                    # 配置 Tab

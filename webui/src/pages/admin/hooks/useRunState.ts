@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
-import type { AdminRunRequest, RunFile, WsMessage } from '../types';
-import { updateProgress } from '../utils';
-import { useWebSocket } from './useWebSocket';
+import type { AdminRunRequest, RunFile, WsMessage } from '../../../lib/types';
+import { updateProgress } from '../../../lib/utils';
+import { useWebSocket } from '../../../hooks/useWebSocket';
 
 export function useRunState() {
   const ws = useWebSocket('/ws/run');
