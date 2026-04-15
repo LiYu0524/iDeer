@@ -597,7 +597,7 @@ SS_API_KEY={config.ss_api_key}
 
 # ============== Run API ==============
 
-async def run_daily_recommender(req: RunRequest):
+async def run_daily_recommender(req: RunRequest, extra_args: list[str] | None = None):
     """异步运行 daily-recommender"""
 
     if not req.sources:
@@ -802,6 +802,9 @@ async def run_daily_recommender(req: RunRequest):
             ss_api_key = config.get("ss_api_key", "")
             if ss_api_key:
                 cmd.extend(["--ss_api_key", ss_api_key])
+
+        if extra_args:
+            cmd.extend(extra_args)
 
         process = await asyncio.create_subprocess_exec(
             *cmd,
@@ -1118,15 +1121,57 @@ async def _scheduler_loop():
                     print(f"[Scheduler] {msg.get('message', '')}")
                 elif msg.get("type") == "complete":
                     status = "success" if msg.get("success") else "failed"
-                    print(f"[Scheduler] Run completed: {status}")
+                    print(f"[Scheduler] Global run completed: {status}")
                 elif msg.get("type") == "error":
                     print(f"[Scheduler] Error: {msg.get('message', '')}")
+
+            # After global run, score for each registered user
+            await _run_for_all_users(sources)
 
         except asyncio.CancelledError:
             break
         except Exception as e:
             print(f"[Scheduler] Error in scheduler loop: {e}")
             await asyncio.sleep(60)
+
+
+async def _run_for_all_users(sources: list[str]):
+    """After a global run, re-run scoring for each registered user with their own description."""
+    if not USERS_DIR.is_dir():
+        return
+    for user_dir in USERS_DIR.iterdir():
+        if not user_dir.is_dir():
+            continue
+        desc_path = user_dir / "description.txt"
+        if not desc_path.exists():
+            continue
+        user_id = user_dir.name
+        meta_path = user_dir / "meta.json"
+        email = ""
+        if meta_path.exists():
+            try:
+                email = json.loads(meta_path.read_text(encoding="utf-8")).get("email", "")
+            except Exception:
+                pass
+        print(f"[Scheduler] Running per-user scoring for {email or user_id}...")
+        try:
+            req = RunRequest(
+                sources=sources,
+                save=True,
+                delivery_mode="source_emails",
+                description=desc_path.read_text(encoding="utf-8"),
+            )
+            # Pass user's profile_hash so eval cache is isolated
+            from core.cache_utils import stable_profile_hash
+            user_profile_hash = stable_profile_hash(req.description)
+
+            async for msg in run_daily_recommender(req, extra_args=["--profile_hash", user_profile_hash]):
+                if msg.get("type") == "log":
+                    print(f"[Scheduler/{email or user_id}] {msg.get('message', '')}")
+                elif msg.get("type") == "complete":
+                    print(f"[Scheduler/{email or user_id}] Done: {'ok' if msg.get('success') else 'fail'}")
+        except Exception as e:
+            print(f"[Scheduler/{email or user_id}] Error: {e}")
 
 
 @app.on_event("startup")
@@ -1149,6 +1194,15 @@ def get_schedule_status():
         "generate_ideas": config.get("schedule_generate_ideas", False),
         "last_run": _last_scheduled_run,
     }
+
+
+@app.post("/api/schedule/run-all-users")
+async def trigger_run_all_users():
+    """Manually trigger per-user scoring for all registered users."""
+    config = load_config_data()
+    sources = config.get("schedule_sources", []) or ["arxiv", "huggingface", "github", "semanticscholar", "pubmed"]
+    asyncio.create_task(_run_for_all_users(sources))
+    return {"status": "started", "message": "Per-user scoring triggered in background"}
 
 
 # ============== Swipe (PaperTinder) ==============
@@ -1388,13 +1442,18 @@ _TEASER_CACHE_MAX = 200
 async def paper_teaser(url: str):
     """Fetch teaser image for a paper/repo. Supports arXiv, S2, HF, GitHub, PubMed."""
     if url in _teaser_cache:
-        return _teaser_cache[url]
+        cached = _teaser_cache[url]
+        # Don't cache failures permanently — only cache successes
+        if cached.get("image_url"):
+            return cached
+        del _teaser_cache[url]
     result = await _resolve_teaser(url)
-    # LRU eviction
-    if len(_teaser_cache) >= _TEASER_CACHE_MAX:
-        oldest = next(iter(_teaser_cache))
-        del _teaser_cache[oldest]
-    _teaser_cache[url] = result
+    # Only cache successful results
+    if result.get("image_url"):
+        if len(_teaser_cache) >= _TEASER_CACHE_MAX:
+            oldest = next(iter(_teaser_cache))
+            del _teaser_cache[oldest]
+        _teaser_cache[url] = result
     return result
 
 
@@ -1456,13 +1515,19 @@ async def _resolve_teaser(url: str) -> dict:
             async with httpx.AsyncClient(timeout=8, follow_redirects=True) as c:
                 r = await c.get(html_url, headers={"User-Agent": "Mozilla/5.0"})
             if r.status_code == 200:
+                # Use the final (possibly redirected) URL as base for relative paths
+                final_url = str(r.url)
+                if not final_url.endswith("/"):
+                    final_url += "/"
                 soup = BeautifulSoup(r.text, "html.parser")
                 for fig in soup.find_all("figure"):
                     img = fig.find("img")
                     if img and img.get("src"):
-                        return {"image_url": urljoin(html_url + "/", img["src"])}
-        except Exception:
-            pass
+                        resolved = urljoin(final_url, img["src"])
+                        if resolved.startswith("http"):
+                            return {"image_url": resolved}
+        except Exception as e:
+            print(f"[paper-teaser] arXiv HTML failed for {arxiv_id}: {e}")
         # Fallback: abs page og:image
         og = await _og_image(f"https://arxiv.org/abs/{arxiv_id}")
         if og:
