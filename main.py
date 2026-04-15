@@ -240,7 +240,8 @@ def main():
         from llm.GPT import GPT
         test_model = GPT(llm_config.model, llm_config.base_url, llm_config.api_key)
     try:
-        test_model.inference("Hello, who are you?")
+        test_model.inference("Hello, who are you?",
+                             temperature=args.temperature)
         print("LLM is available.")
     except Exception as e:
         print(f"LLM test failed: {e}")
@@ -343,7 +344,11 @@ def main():
         ideas = generator.generate()
         if ideas:
             generator.save(ideas)
-            generator.send_email(ideas, email_config)
+            generator.render_email(ideas)
+            if args.skip_source_emails:
+                print("[IdeaGenerator] Skip idea email because --skip_source_emails is enabled.")
+            else:
+                generator.send_email(ideas, email_config)
         else:
             print("No ideas generated.")
 

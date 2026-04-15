@@ -9,6 +9,9 @@ import {
   openRunSocket,
   saveConfig,
   testOpenAICompatibleApi,
+  getStoredUser,
+  loginWithEmail,
+  clearStoredUser,
 } from "./api";
 import {
   ControlCenter,
@@ -70,7 +73,7 @@ import iconX from "./assets/icon_x.svg";
 import iconXBlack from "./assets/icon_x.black.svg";
 import "./desktop.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faFire, faFolderOpen, faHouse, faStar } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faFire, faFolderOpen, faHouse, faStar, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { SwipeView } from "./swipeView";
 
 type ViewName = "home" | "library" | "swipe";
@@ -186,6 +189,10 @@ export default function AppShell() {
   const theme = resolveTheme(themePreference);
   const copy = COPY[language];
   const [activeView, setActiveView] = useState<ViewName>("home");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState<{ userId: string; email: string } | null>(() => desktopWindow ? { userId: "", email: "local" } : getStoredUser());
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginError, setLoginError] = useState("");
   const [controlPanel, setControlPanel] = useState<ControlPanel>("none");
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("profile");
   const [userProfile, setUserProfile] = useState<UserProfile>(() => normalizeUserProfile(readJsonPreference("ideer.user", DEFAULT_PROFILE)));
@@ -634,7 +641,7 @@ export default function AppShell() {
     [copy],
   );
   const avatarMap = useMemo(() => Object.fromEntries(AVATARS.map((item) => [item.key, item.src])) as Record<AvatarId, string>, []);
-  const sidebarName = userProfile.name || copy.user.fallbackName;
+  const sidebarName = userProfile.name || loggedInUser?.email || copy.user.fallbackName;
   const interestSummary = useMemo(() => {
     const tags = parseInterestSummary(config.description || userProfile.focus);
     const preview = tags.positive.slice(0, 2).join(" · ") || userProfile.focus || copy.user.fallbackFocus;
@@ -693,20 +700,65 @@ export default function AppShell() {
     );
   }
 
+  // --- Login gate (web only, desktop skips) ---
+  if (!loggedInUser && !desktopWindow) {
+    const handleLogin = async () => {
+      setLoginError("");
+      try {
+        const result = await loginWithEmail(loginEmail);
+        setLoggedInUser({ userId: result.user_id, email: result.email });
+      } catch (e) {
+        setLoginError(e instanceof Error ? e.message : "Login failed");
+      }
+    };
+    return (
+      <div className="login-gate">
+        <div className="login-card">
+          <h1>🦌 iDeer</h1>
+          <p>{copy.homeSlogan}</p>
+          <input
+            type="email"
+            className="login-email-input"
+            placeholder="your@email.com"
+            value={loginEmail}
+            onChange={(e) => setLoginEmail(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") void handleLogin(); }}
+            autoFocus
+          />
+          <button className="login-btn" onClick={() => void handleLogin()} disabled={!loginEmail.includes("@")}>
+            {language === "zh" ? "开始使用" : "Get started"}
+          </button>
+          {loginError && <p className="login-error">{loginError}</p>}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={showCustomTitleBar ? "desktop-root" : "desktop-root native-frame"}>
       {showCustomTitleBar ? <TitleBar backendHealthy={backendHealthy} statusText={statusText} previewBadge={copy.previewBadge} title={copy.desktopTitle} copy={copy} /> : null}
-      <div className="desktop-shell">
-        <aside className="app-sidebar">
-          <div className="brand-block text-only"><div><h1>{copy.appTitle}</h1><p className="brand-subtitle">{copy.desktopTitle}</p></div></div>
+      <div className="desktop-shell no-sidebar-grid">
+        {/* Floating sidebar toggle */}
+        <button className="sidebar-toggle-btn" onClick={() => setSidebarOpen(true)} aria-label="Menu">
+          <FontAwesomeIcon icon={faBars} />
+        </button>
+
+        {/* Sidebar overlay */}
+        {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
+
+        <aside className={sidebarOpen ? "app-sidebar floating open" : "app-sidebar floating"}>
+          <div className="sidebar-top-row">
+            <div className="brand-block text-only"><div><h1>{copy.appTitle}</h1><p className="brand-subtitle">{copy.desktopTitle}</p></div></div>
+            <button className="sidebar-close-btn" onClick={() => setSidebarOpen(false)}><FontAwesomeIcon icon={faXmark} /></button>
+          </div>
           <nav className="nav-stack">
-            <SidebarButton icon={faHouse} label={copy.sidebar.home} active={activeView === "home"} onClick={() => setActiveView("home")} />
-            <SidebarButton icon={faFire} label={copy.sidebar.swipe} active={activeView === "swipe"} onClick={() => setActiveView("swipe")} />
-            <SidebarButton icon={faFolderOpen} label={copy.sidebar.library} active={activeView === "library"} onClick={() => setActiveView("library")} />
+            <SidebarButton icon={faHouse} label={copy.sidebar.home} active={activeView === "home"} onClick={() => { setActiveView("home"); setSidebarOpen(false); }} />
+            <SidebarButton icon={faFire} label={copy.sidebar.swipe} active={activeView === "swipe"} onClick={() => { setActiveView("swipe"); setSidebarOpen(false); }} />
+            <SidebarButton icon={faFolderOpen} label={copy.sidebar.library} active={activeView === "library"} onClick={() => { setActiveView("library"); setSidebarOpen(false); }} />
           </nav>
           <div className="sidebar-footer">
             <div className="user-dock">
-              <button type="button" className="user-card" onClick={() => openControlPanel("profile")}>
+              <button type="button" className="user-card" onClick={() => { openControlPanel("profile"); setSidebarOpen(false); }}>
                 <img src={avatarMap[userProfile.avatar]} alt={sidebarName} className="user-avatar" />
                 <span className="user-meta">
                   <strong>{sidebarName}</strong>

@@ -18,7 +18,8 @@ from pathlib import Path
 from typing import Literal
 from urllib.parse import urlparse
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+import httpx
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
@@ -41,6 +42,7 @@ DESCRIPTION_FILE = PROJECT_ROOT / "profiles" / "description.txt"
 RESEARCHER_PROFILE_FILE = PROJECT_ROOT / "profiles" / "researcher_profile.md"
 TWITTER_ACCOUNTS_FILE = PROJECT_ROOT / "profiles" / "x_accounts.txt"
 SWIPE_FEEDBACK_FILE = PROJECT_ROOT / "profiles" / "swipe_feedback.json"
+USERS_DIR = PROJECT_ROOT / "users"
 GITHUB_REPO_URL = "https://github.com/LiYu0524/daily-recommender"
 
 DEFAULT_CONFIG = {
@@ -96,6 +98,102 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# ============== User isolation ==============
+
+def _email_to_user_id(email: str) -> str:
+    """Stable short hash from email for directory naming."""
+    import hashlib
+    return hashlib.sha256(email.strip().lower().encode()).hexdigest()[:16]
+
+
+def _get_user_dir(user_id: str) -> Path | None:
+    """Return the user's data directory, or None for anonymous/desktop."""
+    if not user_id:
+        return None
+    d = USERS_DIR / user_id
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _user_description_path(user_id: str) -> Path:
+    d = _get_user_dir(user_id)
+    return (d / "description.txt") if d else DESCRIPTION_FILE
+
+
+def _user_swipe_path(user_id: str) -> Path:
+    d = _get_user_dir(user_id)
+    return (d / "swipe_feedback.json") if d else SWIPE_FEEDBACK_FILE
+
+
+def _user_config_path(user_id: str) -> Path:
+    d = _get_user_dir(user_id)
+    return (d / "config.json") if d else CONFIG_FILE
+
+
+def _resolve_user_id(request) -> str:
+    """Extract user_id from X-User-Id header. Empty = anonymous/desktop."""
+    return (request.headers.get("x-user-id") or "").strip()
+
+
+@app.post("/api/auth/login")
+def auth_login(payload: dict):
+    """Email-based login (no password). Creates user dir if first time."""
+    email = (payload.get("email") or "").strip().lower()
+    if not email or "@" not in email:
+        return JSONResponse({"error": "Invalid email"}, status_code=400)
+
+    user_id = _email_to_user_id(email)
+    user_dir = _get_user_dir(user_id)
+
+    # Save email mapping
+    meta_path = user_dir / "meta.json"
+    if not meta_path.exists():
+        meta_path.write_text(json.dumps({"email": email, "created": datetime.now().isoformat()}, ensure_ascii=False), encoding="utf-8")
+        # Copy global description as starting point
+        if DESCRIPTION_FILE.exists():
+            (user_dir / "description.txt").write_text(DESCRIPTION_FILE.read_text(encoding="utf-8"), encoding="utf-8")
+
+    first_login = not (user_dir / "description.txt").exists()
+    return {"user_id": user_id, "email": email, "needs_setup": first_login}
+
+
+@app.get("/api/user/description")
+def get_user_description(request: Request):
+    uid = _resolve_user_id(request)
+    path = _user_description_path(uid)
+    content = path.read_text(encoding="utf-8") if path.exists() else ""
+    return {"description": content}
+
+
+@app.post("/api/user/description")
+def save_user_description(request: Request, payload: dict):
+    uid = _resolve_user_id(request)
+    desc = (payload.get("description") or "").strip()
+    if not desc:
+        return JSONResponse({"error": "Description cannot be empty"}, status_code=400)
+    path = _user_description_path(uid)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(desc + "\n", encoding="utf-8")
+    return {"status": "ok"}
+
+
+@app.get("/api/auth/me")
+def auth_me(request: Request):
+    """Return current user info based on X-User-Id header."""
+    user_id = _resolve_user_id(request)
+    if not user_id:
+        return {"user_id": "", "email": "", "anonymous": True}
+
+    user_dir = _get_user_dir(user_id)
+    meta_path = user_dir / "meta.json"
+    if meta_path.exists():
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        return {"user_id": user_id, "email": meta.get("email", ""), "anonymous": False}
+    return {"user_id": user_id, "email": "", "anonymous": True}
+
+
+# ============== Utilities ==============
 
 def _read_text_if_exists(path: Path) -> str:
     if path.exists():
@@ -1035,18 +1133,20 @@ def get_schedule_status():
 # ============== Swipe (PaperTinder) ==============
 
 
-def _load_swipe_feedback() -> dict:
-    if SWIPE_FEEDBACK_FILE.exists():
+def _load_swipe_feedback(user_id: str = "") -> dict:
+    path = _user_swipe_path(user_id)
+    if path.exists():
         try:
-            return json.loads(SWIPE_FEEDBACK_FILE.read_text(encoding="utf-8"))
+            return json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             pass
     return {"swiped": {}, "stats": {"liked": 0, "disliked": 0, "total": 0}}
 
 
-def _save_swipe_feedback(data: dict) -> None:
-    SWIPE_FEEDBACK_FILE.parent.mkdir(parents=True, exist_ok=True)
-    SWIPE_FEEDBACK_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+def _save_swipe_feedback(data: dict, user_id: str = "") -> None:
+    path = _user_swipe_path(user_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _collect_unseen_items(sources: list[str], days: int, swiped_urls: set[str], limit: int) -> tuple[list[dict], int]:
@@ -1094,17 +1194,19 @@ class SwipeFeedbackRequest(BaseModel):
 
 
 @app.get("/api/swipe/queue")
-def get_swipe_queue(sources: str = "", days: int = 7, limit: int = 50):
+def get_swipe_queue(request: Request, sources: str = "", days: int = 7, limit: int = 50):
+    uid = _resolve_user_id(request)
     source_list = [s.strip() for s in sources.split(",") if s.strip()] if sources else ["arxiv", "huggingface", "github", "semanticscholar"]
-    fb = _load_swipe_feedback()
+    fb = _load_swipe_feedback(uid)
     swiped_urls = set(fb.get("swiped", {}).keys())
     items, total_unseen = _collect_unseen_items(source_list, days, swiped_urls, limit)
     return {"items": items, "total_unseen": total_unseen, "total_swiped": fb["stats"].get("total", 0)}
 
 
 @app.post("/api/swipe/feedback")
-def record_swipe_feedback(req: SwipeFeedbackRequest):
-    fb = _load_swipe_feedback()
+def record_swipe_feedback(request: Request, req: SwipeFeedbackRequest):
+    uid = _resolve_user_id(request)
+    fb = _load_swipe_feedback(uid)
     swiped = fb.setdefault("swiped", {})
     stats = fb.setdefault("stats", {"liked": 0, "disliked": 0, "total": 0})
 
@@ -1131,19 +1233,21 @@ def record_swipe_feedback(req: SwipeFeedbackRequest):
         stats["disliked"] += 1
     stats["total"] += 1
 
-    _save_swipe_feedback(fb)
+    _save_swipe_feedback(fb, uid)
     return {"status": "ok", "stats": stats}
 
 
 @app.get("/api/swipe/stats")
-def get_swipe_stats():
-    fb = _load_swipe_feedback()
+def get_swipe_stats(request: Request):
+    uid = _resolve_user_id(request)
+    fb = _load_swipe_feedback(uid)
     return fb.get("stats", {"liked": 0, "disliked": 0, "total": 0})
 
 
 @app.post("/api/swipe/apply-feedback")
-def apply_swipe_feedback():
-    fb = _load_swipe_feedback()
+def apply_swipe_feedback(request: Request):
+    uid = _resolve_user_id(request)
+    fb = _load_swipe_feedback(uid)
     swiped = fb.get("swiped", {})
     if not swiped:
         return {"status": "ok", "message": "No swipe data yet."}
@@ -1166,8 +1270,8 @@ def apply_swipe_feedback():
     positive = _extract_keywords(liked_titles)
     negative = _extract_keywords(disliked_titles)
 
-    # Read and update description.txt
-    desc_path = DESCRIPTION_FILE
+    # Read and update user's description.txt
+    desc_path = _user_description_path(uid)
     content = desc_path.read_text(encoding="utf-8") if desc_path.exists() else ""
 
     marker_start = "--- Swipe-derived preferences (auto-updated) ---"
@@ -1189,6 +1293,209 @@ def apply_swipe_feedback():
 
     desc_path.write_text(before + block, encoding="utf-8")
     return {"status": "ok", "positive": positive, "negative": negative}
+
+
+ZOTERO_SAVE_SCRIPT = Path.home() / ".claude" / "skills" / "zotero-mcp" / "scripts" / "zotero_save.py"
+ZOTERO_PYTHON = Path.home() / ".local" / "share" / "uv" / "tools" / "zotero-mcp-server" / "bin" / "python"
+
+
+@app.post("/api/swipe/sync-zotero")
+def sync_liked_to_zotero(request: Request, collection: str = "iDeer Liked"):
+    uid = _resolve_user_id(request)
+    """Sync all liked (un-synced) papers to Zotero."""
+    fb = _load_swipe_feedback(uid)
+    swiped = fb.get("swiped", {})
+
+    # Find python for zotero_save.py
+    python_bin = str(ZOTERO_PYTHON) if ZOTERO_PYTHON.exists() else sys.executable
+    script = str(ZOTERO_SAVE_SCRIPT)
+    if not ZOTERO_SAVE_SCRIPT.exists():
+        return {"status": "error", "message": f"zotero_save.py not found at {script}"}
+
+    synced = 0
+    failed = 0
+    skipped = 0
+
+    for url, entry in swiped.items():
+        if entry.get("action") != "like":
+            continue
+        if entry.get("synced_to_zotero"):
+            skipped += 1
+            continue
+
+        cmd = [python_bin, script, "--url", url, "--collection", collection, "--tags", "iDeer-liked"]
+        try:
+            import subprocess
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            if result.returncode == 0:
+                entry["synced_to_zotero"] = True
+                synced += 1
+                print(f"[zotero] Synced: {entry.get('title', url)}")
+            else:
+                # URL might not be parseable — try manual metadata
+                title = entry.get("title", "")
+                source = entry.get("source", "")
+                if title and source:
+                    cmd2 = [python_bin, script, "--title", title, "--url", url,
+                            "--collection", collection, "--tags", f"iDeer-liked,{source}"]
+                    r2 = subprocess.run(cmd2, capture_output=True, text=True, timeout=30)
+                    if r2.returncode == 0:
+                        entry["synced_to_zotero"] = True
+                        synced += 1
+                        print(f"[zotero] Synced (manual): {title}")
+                    else:
+                        failed += 1
+                        print(f"[zotero] Failed: {title} — {r2.stderr[:200]}")
+                else:
+                    failed += 1
+                    print(f"[zotero] Failed: {url} — {result.stderr[:200]}")
+        except Exception as e:
+            failed += 1
+            print(f"[zotero] Error: {url} — {e}")
+
+    _save_swipe_feedback(fb, uid)
+    return {"status": "ok", "synced": synced, "failed": failed, "skipped": skipped}
+
+
+# ============== Paper Teaser ==============
+
+_teaser_cache: dict[str, dict] = {}
+_TEASER_CACHE_MAX = 200
+
+
+@app.get("/api/paper-teaser")
+async def paper_teaser(url: str):
+    """Fetch teaser image for a paper/repo. Supports arXiv, S2, HF, GitHub, PubMed."""
+    if url in _teaser_cache:
+        return _teaser_cache[url]
+    result = await _resolve_teaser(url)
+    # LRU eviction
+    if len(_teaser_cache) >= _TEASER_CACHE_MAX:
+        oldest = next(iter(_teaser_cache))
+        del _teaser_cache[oldest]
+    _teaser_cache[url] = result
+    return result
+
+
+async def _resolve_teaser(url: str) -> dict:
+    from bs4 import BeautifulSoup
+    from urllib.parse import urljoin
+
+    async def _og_image(page_url: str) -> str | None:
+        try:
+            async with httpx.AsyncClient(timeout=6, follow_redirects=True) as c:
+                r = await c.get(page_url, headers={"User-Agent": "Mozilla/5.0"})
+            if r.status_code != 200:
+                return None
+            soup = BeautifulSoup(r.text, "html.parser")
+            for attr in ("og:image", "twitter:image"):
+                tag = soup.find("meta", property=attr) or soup.find("meta", attrs={"name": attr})
+                if tag and tag.get("content"):
+                    return tag["content"]
+        except Exception:
+            pass
+        return None
+
+    # GitHub → auto-generated OG image (always works, no fetch needed)
+    gh = re.search(r'github\.com/([^/]+/[^/]+)', url)
+    if gh:
+        return {"image_url": f"https://opengraph.githubassets.com/1/{gh.group(1)}"}
+
+    # HuggingFace → og:image
+    if "huggingface.co" in url:
+        img = await _og_image(url)
+        if img:
+            return {"image_url": img}
+
+    # Resolve arXiv ID from URL or S2
+    arxiv_id: str | None = None
+    m = re.search(r'arxiv\.org/(?:abs|pdf|html)/(\d{4}\.\d+)', url)
+    if m:
+        arxiv_id = m.group(1)
+
+    if not arxiv_id:
+        m2 = re.search(r'semanticscholar\.org/paper/([a-f0-9]{40})', url)
+        if m2:
+            try:
+                async with httpx.AsyncClient(timeout=6, follow_redirects=True) as c:
+                    r = await c.get(
+                        f"https://api.semanticscholar.org/graph/v1/paper/{m2.group(1)}",
+                        params={"fields": "externalIds"},
+                        headers={"User-Agent": "Mozilla/5.0"},
+                    )
+                if r.status_code == 200:
+                    arxiv_id = r.json().get("externalIds", {}).get("ArXiv")
+            except Exception:
+                pass
+
+    # arXiv → try HTML figure first, then og:image
+    if arxiv_id:
+        html_url = f"https://arxiv.org/html/{arxiv_id}"
+        try:
+            async with httpx.AsyncClient(timeout=8, follow_redirects=True) as c:
+                r = await c.get(html_url, headers={"User-Agent": "Mozilla/5.0"})
+            if r.status_code == 200:
+                soup = BeautifulSoup(r.text, "html.parser")
+                for fig in soup.find_all("figure"):
+                    img = fig.find("img")
+                    if img and img.get("src"):
+                        return {"image_url": urljoin(html_url + "/", img["src"])}
+        except Exception:
+            pass
+        # Fallback: abs page og:image
+        og = await _og_image(f"https://arxiv.org/abs/{arxiv_id}")
+        if og:
+            return {"image_url": og}
+
+    # PubMed → og:image
+    if "pubmed" in url:
+        img = await _og_image(url)
+        if img:
+            return {"image_url": img}
+
+    # Generic fallback: try og:image on the URL itself
+    img = await _og_image(url)
+    if img:
+        return {"image_url": img}
+
+    print(f"[paper-teaser] No image found for {url[:80]}")
+    return {"image_url": None}
+
+
+_image_cache: dict[str, tuple[bytes, str]] = {}
+_IMAGE_CACHE_MAX = 50  # ~50 images * ~200KB avg = ~10MB
+
+
+@app.get("/api/proxy-image")
+async def proxy_image(url: str):
+    """Proxy external images with in-memory cache. Avoids re-downloading."""
+    from fastapi.responses import Response, RedirectResponse
+    if not url or not url.startswith("http"):
+        return Response(status_code=400)
+
+    if url in _image_cache:
+        content, content_type = _image_cache[url]
+        return Response(content=content, media_type=content_type,
+                        headers={"Cache-Control": "public, max-age=86400"})
+
+    try:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+            resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
+        if resp.status_code != 200:
+            return RedirectResponse(url=url)
+        content_type = resp.headers.get("content-type", "image/png")
+        content = resp.content
+        # Cache if not too large (< 500KB)
+        if len(content) < 512_000:
+            if len(_image_cache) >= _IMAGE_CACHE_MAX:
+                oldest = next(iter(_image_cache))
+                del _image_cache[oldest]
+            _image_cache[url] = (content, content_type)
+        return Response(content=content, media_type=content_type,
+                        headers={"Cache-Control": "public, max-age=86400"})
+    except Exception as e:
+        print(f"[proxy-image] Failed for {url[:80]}: {e}")
+        return RedirectResponse(url=url)
 
 
 # ============== Main ==============

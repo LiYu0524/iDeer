@@ -218,6 +218,10 @@ button,
   border: 0;
   border-top: 0;
   border-radius: 0;
+}
+
+.desktop-shell.no-sidebar-grid {
+  grid-template-columns: minmax(0, 1fr);
   overflow: hidden;
 }
 
@@ -229,7 +233,7 @@ button,
 .floating-star-button {
   position: absolute;
   right: 18px;
-  bottom: 18px;
+  top: 16px;
   z-index: 12;
   display: inline-flex;
   align-items: center;
@@ -267,9 +271,95 @@ button,
   backdrop-filter: blur(16px);
 }
 
+.app-sidebar.floating {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 272px;
+  z-index: 1000;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+}
+
+.app-sidebar.floating.open {
+  transform: translateX(0);
+  box-shadow: 8px 0 32px rgba(0, 0, 0, 0.12);
+}
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-toggle-btn {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 100;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--line, #e5e7eb);
+  background: var(--panel, #fff);
+  color: var(--primary, #111);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: background 0.15s;
+}
+.sidebar-toggle-btn:hover {
+  background: var(--line, #f3f4f6);
+}
+
+.sidebar-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--muted, #6b7280);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+.sidebar-close-btn:hover {
+  background: var(--line, #e5e7eb);
+}
+
 :root[data-theme="dark"] .app-sidebar {
   background: #080a0e;
   backdrop-filter: none;
+}
+
+:root[data-theme="dark"] .app-sidebar.floating {
+  background: rgba(8, 10, 14, 0.96);
+}
+
+:root[data-theme="dark"] .sidebar-toggle-btn {
+  background: #1a1d24;
+  border-color: #2a2d35;
+  color: #e5e7eb;
+}
+
+:root[data-theme="dark"] .sidebar-overlay {
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .brand-block {
@@ -312,6 +402,90 @@ button,
 .nav-stack,
 .sidebar-footer,
 .workspace,
+/* ============== Login Gate ============== */
+
+.login-gate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: var(--bg, #eef3f8);
+}
+
+.login-card {
+  text-align: center;
+  background: var(--panel-strong, #fff);
+  padding: 48px 40px;
+  border-radius: 20px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.08);
+  max-width: 380px;
+  width: 100%;
+}
+
+.login-card h1 {
+  font-size: 32px;
+  margin: 0 0 8px;
+}
+
+.login-card p {
+  color: var(--muted, #6b7280);
+  font-size: 15px;
+  margin: 0 0 24px;
+}
+
+.login-email-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 12px;
+  font-size: 16px;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+  outline: none;
+}
+.login-email-input:focus {
+  border-color: var(--accent, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  background: var(--accent, #6366f1);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.login-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.login-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.login-error {
+  color: #ef4444;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.required-mark {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.home-slogan {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--primary, #111);
+  margin: 0 0 4px 0;
+  letter-spacing: -0.3px;
+}
+
 .page-grid,
 .content-grid,
 .side-stack,
@@ -547,7 +721,7 @@ button,
 .home-grid,
 .library-grid,
 .settings-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 280px minmax(0, 1fr);
 }
 
 .home-grid {
@@ -1444,6 +1618,16 @@ pre {
   pointer-events: auto;
 }
 
+.control-center-panel .metric-actions {
+  position: sticky;
+  bottom: -16px;
+  background: var(--panel-strong);
+  padding: 12px 0;
+  margin: 0 -16px;
+  padding-left: 16px;
+  border-top: 1px solid var(--line);
+}
+
 .control-center-window {
   width: 100%;
   height: 100%;
@@ -1810,7 +1994,7 @@ details summary {
 
 @media (max-width: 980px) {
   .desktop-shell {
-    grid-template-columns: 88px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .app-sidebar {
@@ -1859,14 +2043,14 @@ details summary {
 
   .floating-star-button {
     right: 14px;
-    bottom: 14px;
+    top: 14px;
     padding: 0 14px;
   }
 }
 
 @media (max-width: 720px) {
   .desktop-shell {
-    grid-template-columns: 76px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .workspace {
@@ -1906,6 +2090,38 @@ details summary {
   padding: 24px;
   gap: 20px;
   user-select: none;
+}
+
+.swipe-source-filter {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.swipe-source-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: var(--panel, #fff);
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.4;
+  transition: opacity 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.swipe-source-icon.active {
+  opacity: 1;
+}
+.swipe-source-icon:hover {
+  opacity: 0.8;
+}
+.swipe-source-icon img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
 }
 
 .swipe-card {
@@ -1976,11 +2192,10 @@ details summary {
   font-size: 14px;
   line-height: 1.7;
   color: var(--secondary, #374151);
-  max-height: 9.5em;
-  overflow: hidden;
-  mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+  max-height: 12em;
+  overflow-y: auto;
   margin-bottom: 12px;
+  padding-right: 4px;
 }
 
 .swipe-meta-row {
@@ -2057,6 +2272,8 @@ details summary {
   cursor: pointer;
 }
 .swipe-apply-inline:hover { background: var(--line, #e5e7eb); }
+.swipe-apply-inline.zotero { color: #cc2936; border-color: #cc293640; }
+.swipe-apply-inline.zotero:hover { background: #cc293612; }
 
 .swipe-empty-card {
   text-align: center;

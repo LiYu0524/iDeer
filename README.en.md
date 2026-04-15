@@ -101,6 +101,7 @@ vim .env
 
 # 3. Write your interest profile
 vim profiles/description.txt
+vim profiles/researcher_profile.md   # Recommended as well if you plan to generate ideas later
 
 # 4. Run a first dry run without sending emails
 python main.py --sources arxiv semanticscholar huggingface --save --skip_source_emails
@@ -190,7 +191,7 @@ This skill does not re-implement the recommender. It tells Codex when to run `ma
 A: Any OpenAI-compatible API, including local Ollama. Configure `MODEL_NAME`, `BASE_URL`, and `API_KEY`.
 
 **Q: What if I do not want email and only want local artifacts?**  
-A: Add `--skip_source_emails`. Outputs will still be saved to `history/`.
+A: Add `--skip_source_emails`. This skips source emails and idea emails, while still writing HTML/Markdown/JSON outputs to `history/`.
 
 **Q: My field is not AI. Can I still use it?**  
 A: Yes. Semantic Scholar covers broad academic domains, arXiv categories are configurable, and your interest description can be written in natural language for any field.

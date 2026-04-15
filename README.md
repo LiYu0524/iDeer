@@ -113,6 +113,7 @@ pip install -r requirements-web.txt
 cp .env.example .env
 vim .env   # 填 MODEL_NAME, BASE_URL, API_KEY
 vim profiles/description.txt
+vim profiles/researcher_profile.md   # 如果后面要生成 ideas，建议一起改
 
 python main.py --sources arxiv semanticscholar huggingface --save --skip_source_emails
 ```
@@ -548,7 +549,7 @@ python main.py --cache_clean fetch eval   # 只清除缓存，保留历史
 A：任何 OpenAI 兼容 API（含本地 Ollama）。配好 `MODEL_NAME` + `BASE_URL` + `API_KEY` 即可。
 
 **Q：不想发邮件，只想本地看？**
-A：加 `--skip_source_emails`，产出存在 `history/` 目录。
+A：加 `--skip_source_emails`。这样会跳过 source 邮件和 idea 邮件，但仍会把 HTML/Markdown/JSON 产物写到 `history/` 目录。
 
 **Q：我的领域不是 AI，能用吗？**
 A：能。Semantic Scholar 覆盖全学科，arXiv 支持自定义分类，兴趣描述用自然语言写你关注的方向就行。

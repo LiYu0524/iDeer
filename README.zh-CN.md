@@ -101,6 +101,7 @@ vim .env
 
 # 3. 写你的兴趣画像
 vim profiles/description.txt
+vim profiles/researcher_profile.md   # 如果后面要生成 ideas，建议一起改
 
 # 4. 跑一次试试（不发邮件）
 python main.py --sources arxiv semanticscholar huggingface --save --skip_source_emails
