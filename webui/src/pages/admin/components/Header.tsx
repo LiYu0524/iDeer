@@ -30,7 +30,7 @@ export function Header({ activeTab, onTabChange }: HeaderProps) {
             返回
           </button>
           <div className="h-5 w-px bg-slate-200" />
-          <img src="/assets/icon_ideer.svg" alt="iDeer" className="h-9 w-9 rounded-xl shadow-soft" />
+          <img src="/icons/icon_ideer.svg" alt="iDeer" className="h-9 w-9 rounded-xl shadow-soft" />
           <h1 className="text-lg font-bold tracking-[-0.02em] text-slate-800">iDeer</h1>
           <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
             Admin

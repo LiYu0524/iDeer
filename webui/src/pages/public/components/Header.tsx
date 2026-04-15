@@ -28,7 +28,7 @@ export function Header({ mode, onModeChange, meta }: HeaderProps) {
     <header className="sticky top-0 z-40 border-b border-white/60 bg-white/70 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 md:px-8">
         <div className="flex items-center gap-3">
-          <img src="/assets/icon_ideer.svg" alt="iDeer" className="h-9 w-9 rounded-xl shadow-soft" />
+          <img src="/icons/icon_ideer.svg" alt="iDeer" className="h-9 w-9 rounded-xl shadow-soft" />
           <h1 className="text-lg font-bold tracking-[-0.02em] text-ink">
             iDeer
           </h1>
