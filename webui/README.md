@@ -68,6 +68,15 @@ pyinstaller --onefile --windowed --name iDeer --add-data "webui/dist;webui/dist"
 
 **选择建议：** 如果后端逻辑较复杂且已有成熟的 Python 实现，PyWebView 方案更合适，避免用 Rust 重写大量代码。如果追求最小体积和最快启动速度，且愿意投入 Rust 开发成本，可以考虑 Tauri。
 
+### 当前状态
+
+PyWebView 方案已测试通过，可以正常打包和运行。
+
+### 可能可以尝试的其他方案
+
+- PyInstaller + Pake：用 PyInstaller 打包 Python 后端，再用 Pake 将前端包裹为轻量桌面客户端，两个进程独立运行，体积更小
+- Rust 重写 web_server + CLI：用 Rust 重写后端 API 服务和 CLI 调用逻辑，核心算法保留为 Python 包供 Rust 侧调用（通过 PyO3 或子进程），兼顾体积和启动速度
+
 ## 页面结构
 
 | 路由       | 说明                 | 状态     |
