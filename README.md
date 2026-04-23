@@ -506,6 +506,7 @@ A：当前实现是指令式模式，只处理 `/help`、`/status`、`/run`、`/
 - **🖥️ 桌面客户端** — 本地 GUI 体验（见 [Desktop Demo](./docs/DESKTOP_DEMO.md)）
 - **🔌 Claude Code Skill** — 支持作为 Claude Code 技能集成
 - **🤖 Codex Daily Paper Skill** — 内置 [`skills/ideer-daily-paper/SKILL.md`](./skills/ideer-daily-paper/SKILL.md)，让 Codex 按统一流程完成每日论文阅读、自动整理、邮件发送和自动化调度
+- **📚 Zotero 自动同步** — Swipe 右划自动存入 Zotero；每日推荐高分论文一键同步；资料库批量导出。需要 Zotero 7 + `zotero_save.py`
 
 ## 用 Codex 做每日论文自动化
 

@@ -1304,6 +1304,10 @@ def record_swipe_feedback(request: Request, req: SwipeFeedbackRequest):
 
     if req.action == "like":
         stats["liked"] += 1
+        # Auto-sync to Zotero in background
+        if _zotero_available()[0]:
+            _zotero_save_async(req.url, req.title, req.source)
+            swiped[req.url]["synced_to_zotero"] = True
     elif req.action == "dislike":
         stats["disliked"] += 1
     stats["total"] += 1
@@ -1374,62 +1378,130 @@ ZOTERO_SAVE_SCRIPT = Path.home() / ".claude" / "skills" / "zotero-mcp" / "script
 ZOTERO_PYTHON = Path.home() / ".local" / "share" / "uv" / "tools" / "zotero-mcp-server" / "bin" / "python"
 
 
+def _zotero_available() -> tuple[bool, str, str]:
+    """Check if zotero_save.py is available. Returns (ok, python_bin, script_path)."""
+    python_bin = str(ZOTERO_PYTHON) if ZOTERO_PYTHON.exists() else sys.executable
+    script = str(ZOTERO_SAVE_SCRIPT)
+    return ZOTERO_SAVE_SCRIPT.exists(), python_bin, script
+
+
+def _zotero_save_one(url: str, title: str = "", source: str = "",
+                     collection: str = "iDeer", tags: str = "iDeer",
+                     doi: str = "", authors: str = "") -> bool:
+    """Save a single paper to Zotero. Returns True on success."""
+    ok, python_bin, script = _zotero_available()
+    if not ok:
+        return False
+
+    import subprocess
+
+    # Primary: try URL (auto-detect arXiv/DOI)
+    cmd = [python_bin, script, "--url", url, "--collection", collection, "--tags", tags]
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        if r.returncode == 0:
+            return True
+    except Exception:
+        pass
+
+    # Try DOI if available
+    if doi:
+        cmd2 = [python_bin, script, "--doi", doi, "--collection", collection, "--tags", tags]
+        try:
+            r2 = subprocess.run(cmd2, capture_output=True, text=True, timeout=30)
+            if r2.returncode == 0:
+                return True
+        except Exception:
+            pass
+
+    # Fallback: manual metadata
+    if title:
+        cmd3 = [python_bin, script, "--title", title, "--url", url,
+                "--collection", collection, "--tags", f"{tags},{source}" if source else tags]
+        if authors:
+            cmd3.extend(["--authors", authors])
+        try:
+            r3 = subprocess.run(cmd3, capture_output=True, text=True, timeout=30)
+            if r3.returncode == 0:
+                return True
+        except Exception:
+            pass
+
+    return False
+
+
+def _zotero_save_async(url: str, title: str = "", source: str = "",
+                       collection: str = "iDeer Liked", tags: str = "iDeer-liked",
+                       doi: str = "", authors: str = ""):
+    """Fire-and-forget Zotero save in a background thread."""
+    import threading
+    def _run():
+        ok = _zotero_save_one(url, title, source, collection, tags, doi, authors)
+        print(f"[zotero] {'Saved' if ok else 'Failed'}: {title or url[:60]}")
+    threading.Thread(target=_run, daemon=True).start()
+
+
 @app.post("/api/swipe/sync-zotero")
 def sync_liked_to_zotero(request: Request, collection: str = "iDeer Liked"):
-    uid = _resolve_user_id(request)
     """Sync all liked (un-synced) papers to Zotero."""
+    uid = _resolve_user_id(request)
     fb = _load_swipe_feedback(uid)
     swiped = fb.get("swiped", {})
 
-    # Find python for zotero_save.py
-    python_bin = str(ZOTERO_PYTHON) if ZOTERO_PYTHON.exists() else sys.executable
-    script = str(ZOTERO_SAVE_SCRIPT)
-    if not ZOTERO_SAVE_SCRIPT.exists():
-        return {"status": "error", "message": f"zotero_save.py not found at {script}"}
+    ok, _, _ = _zotero_available()
+    if not ok:
+        return {"status": "error", "message": "zotero_save.py not found"}
 
-    synced = 0
-    failed = 0
-    skipped = 0
-
+    synced = failed = skipped = 0
     for url, entry in swiped.items():
         if entry.get("action") != "like":
             continue
         if entry.get("synced_to_zotero"):
             skipped += 1
             continue
-
-        cmd = [python_bin, script, "--url", url, "--collection", collection, "--tags", "iDeer-liked"]
-        try:
-            import subprocess
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-            if result.returncode == 0:
-                entry["synced_to_zotero"] = True
-                synced += 1
-                print(f"[zotero] Synced: {entry.get('title', url)}")
-            else:
-                # URL might not be parseable — try manual metadata
-                title = entry.get("title", "")
-                source = entry.get("source", "")
-                if title and source:
-                    cmd2 = [python_bin, script, "--title", title, "--url", url,
-                            "--collection", collection, "--tags", f"iDeer-liked,{source}"]
-                    r2 = subprocess.run(cmd2, capture_output=True, text=True, timeout=30)
-                    if r2.returncode == 0:
-                        entry["synced_to_zotero"] = True
-                        synced += 1
-                        print(f"[zotero] Synced (manual): {title}")
-                    else:
-                        failed += 1
-                        print(f"[zotero] Failed: {title} — {r2.stderr[:200]}")
-                else:
-                    failed += 1
-                    print(f"[zotero] Failed: {url} — {result.stderr[:200]}")
-        except Exception as e:
+        if _zotero_save_one(url, entry.get("title", ""), entry.get("source", ""),
+                           collection=collection, tags="iDeer-liked"):
+            entry["synced_to_zotero"] = True
+            synced += 1
+        else:
             failed += 1
-            print(f"[zotero] Error: {url} — {e}")
 
     _save_swipe_feedback(fb, uid)
     return {"status": "ok", "synced": synced, "failed": failed, "skipped": skipped}
+
+
+class ZoteroSaveRequest(BaseModel):
+    items: list[dict]
+    collection: str = "iDeer Export"
+
+
+@app.post("/api/zotero/save")
+def zotero_save_batch(req: ZoteroSaveRequest):
+    """Generic: save a list of papers to Zotero. Each item needs at least {url, title}."""
+    ok, _, _ = _zotero_available()
+    if not ok:
+        return {"status": "error", "message": "zotero_save.py not found"}
+
+    synced = failed = 0
+    for item in req.items:
+        url = item.get("url", "")
+        if not url:
+            failed += 1
+            continue
+        if _zotero_save_one(
+            url=url,
+            title=item.get("title", ""),
+            source=item.get("source", item.get("_source_type", "")),
+            collection=req.collection,
+            tags="iDeer",
+            doi=item.get("doi", ""),
+            authors=item.get("authors", ""),
+        ):
+            synced += 1
+        else:
+            failed += 1
+
+    return {"status": "ok", "synced": synced, "failed": failed}
 
 
 # ============== Paper Teaser ==============

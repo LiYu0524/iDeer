@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHeart, faXmark, faUndo, faArrowUpRightFromSquare, faCheck } from "@fortawesome/free-solid-svg-icons";
-import { getSwipeQueue, sendSwipeFeedback, applySwipeFeedback, syncSwipeToZotero, buildUrl } from "./api";
+import { getSwipeQueue, sendSwipeFeedback, applySwipeFeedback, buildUrl } from "./api";
 import type { SwipeItem, SwipeStats } from "./types";
 import type { AppCopy } from "./copy";
 import iconArxiv from "./assets/icon_arxiv.svg";
@@ -57,8 +57,6 @@ export function SwipeView(props: {
   const [exiting, setExiting] = useState<"left" | "right" | null>(null);
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState("");
   const [teaserUrl, setTeaserUrl] = useState<string | null>(null);
   const [teaserLoading, setTeaserLoading] = useState(false);
   const teaserCache = useRef<Map<string, string | null>>(new Map());
@@ -234,19 +232,6 @@ export function SwipeView(props: {
     setApplying(false);
   };
 
-  const handleSyncZotero = async () => {
-    setSyncing(true);
-    setSyncResult("");
-    try {
-      const res = await syncSwipeToZotero();
-      setSyncResult(`${res.synced} synced`);
-      setTimeout(() => setSyncResult(""), 4000);
-    } catch {
-      setSyncResult("failed");
-      setTimeout(() => setSyncResult(""), 3000);
-    }
-    setSyncing(false);
-  };
 
   const isDraggingByPointer = dragging.current;
   const cardStyle = exiting
@@ -377,9 +362,6 @@ export function SwipeView(props: {
           <>
             <button className="swipe-apply-inline" onClick={() => void handleApply()} disabled={applying}>
               {applied ? <FontAwesomeIcon icon={faCheck} /> : (copy.swipe?.applyFeedback ?? "Apply")}
-            </button>
-            <button className="swipe-apply-inline zotero" onClick={() => void handleSyncZotero()} disabled={syncing}>
-              {syncResult || (syncing ? "Syncing..." : "Zotero")}
             </button>
           </>
         )}

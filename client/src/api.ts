@@ -270,6 +270,15 @@ export async function syncSwipeToZotero(collection = "iDeer Liked"): Promise<{ s
   return readJson(res);
 }
 
+export async function saveToZotero(items: Array<{ url: string; title?: string; source?: string; doi?: string; authors?: string }>, collection = "iDeer Export"): Promise<{ status: string; synced: number; failed: number }> {
+  const res = await fetch(buildHttpUrl("/api/zotero/save"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items, collection }),
+  });
+  return readJson(res);
+}
+
 function normalizeProbeError(error: unknown) {
   if (error instanceof Error) {
     return error;
