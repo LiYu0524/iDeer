@@ -2,7 +2,7 @@ name: Scheduled Report Email
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "0 20 * * *"
   workflow_dispatch:
     inputs:
       sources:
