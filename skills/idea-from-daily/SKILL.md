@@ -71,7 +71,7 @@ Show a numbered table:
 ```
 | #  | 标题           | 分数  | 方向       | 关联项目        | Research Direction (EN)          |
 |----|---------------|------|-----------|----------------|----------------------------------|
-| 1  | 中文标题        | 8.5  | Safety    | AgentDoG       | One-line English direction...    |
+| 1  | 中文标题        | 8.5  | MCP Servers | Agent Skills  | One-line English direction...    |
 | 2  | ...           | ...  | ...       | ...            | ...                              |
 ```
 

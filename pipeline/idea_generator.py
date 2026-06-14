@@ -341,8 +341,8 @@ class IdeaGenerator:
     "inspired_by": [
       {{"title": "item title", "source": "github", "url": "https://..."}}
     ],
-    "connects_to_project": "ATbench_Engine / AgentDoG / ECCV_VLA / Domain-RAG / embody_bench / egocross / none",
-    "interest_area": "Agent / Safety / Trustworthy",
+    "connects_to_project": "AI Agents / Open-Source Models / Agent Skills / MCP Servers / none",
+    "interest_area": "AI Agents / Open-Source Models / Agent Skills / MCP Servers",
     "novelty_estimate": "HIGH / MEDIUM / LOW",
     "feasibility": "HIGH / MEDIUM / LOW",
     "composite_score": 8.5,

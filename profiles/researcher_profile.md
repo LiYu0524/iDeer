@@ -3,27 +3,26 @@
 ## Research Directions
 
 ### Primary Areas
-1. **Agent** — LLM-based agents, tool use, multi-step reasoning, agentic workflows, autonomous systems, embodied agents
-2. **Safety** — AI safety, alignment, jailbreak, red-teaming, guardrails, RLHF, harmful content detection
-3. **Trustworthy** — trustworthy AI, robustness, fairness, interpretability, hallucination, uncertainty
+1. **AI Agents** — LLM-based agents, tool use, multi-step reasoning, agentic workflows, autonomous systems, and agent orchestration.
+2. **Latest Open-Source Models** — new open-weight LLMs, VLMs, embedding models, coding models, model serving stacks, and practical adoption signals.
+3. **Practical Agent Skills** — reusable agent skills, workflow templates, tool-use patterns, evaluation recipes, and production-ready automation practices.
+4. **MCP Servers** — Model Context Protocol servers, tool connectors, context providers, protocol patterns, and real-world MCP ecosystem integrations.
 
 ### Sub-directions
-- Embodied AI & VLA (Vision-Language-Action)
-- Benchmark design & evaluation methodology
-- Domain-specific RAG systems
-- Egocentric video understanding
-- Multi-agent collaboration & safety
+- Agent frameworks, tool calling, planning, memory, and multi-agent collaboration
+- Open-source model releases, benchmark results, inference efficiency, and deployment trade-offs
+- Skill design for coding agents, research agents, data agents, and operational assistants
+- MCP server design, server discovery, security boundaries, and integration quality
+- Practical workflows that combine agents, open-source models, skills, and MCP tools
 
 ## Active Projects
 
 | Project | Description | Status |
 |---------|-------------|--------|
-| ATbench_Engine | Benchmark engine for agent trustworthiness evaluation | Active |
-| AgentDoG | Agent safety / defense-oriented generation | Active |
-| ECCV_VLA | Vision-Language-Action models for embodied AI | Active |
-| Domain-RAG | Domain-specific retrieval-augmented generation | Active |
-| embody_bench | Embodied agent benchmark | Active |
-| egocross | Egocentric cross-view understanding | Active |
+| AI Agents | Tracking and applying practical agent architectures, frameworks, and workflows | Active |
+| Open-Source Models | Monitoring latest open-weight models and evaluating practical use cases | Active |
+| Agent Skills | Designing reusable skills and workflow patterns for agentic systems | Active |
+| MCP Servers | Exploring, building, and evaluating Model Context Protocol server integrations | Active |
 
 ## Publications
 
@@ -37,19 +36,18 @@ To auto-fetch, provide your Google Scholar profile URL and run:
 
 ## Target Venues
 
-- **Top ML**: NeurIPS, ICML, ICLR
-- **Vision**: ECCV, CVPR
-- **NLP**: ACL, EMNLP
-- **Multimedia**: ACM MM
+- **Agent / LLM**: NeurIPS, ICML, ICLR, ACL, EMNLP
+- **Open-source ecosystems**: Hugging Face, GitHub, model-release blogs, technical reports
+- **Developer tooling**: MCP, agent frameworks, coding-agent communities, applied AI engineering
 
 ## Available Resources
 
-- GPU cluster access (multi-node training capable)
-- Access to commercial LLM APIs (OpenAI, etc.)
+- Access to commercial LLM APIs and open-source model tooling
+- Local and cloud environments for testing agents, skills, and MCP server integrations
 
 ## Research Style & Preferences
 
-- **Empirical-first**: Prefer ideas validated by experiments over pure theory
-- **Benchmark-oriented**: Strong preference for building evaluation frameworks
-- **Cross-domain**: Interested in connecting Agent + Safety + Trustworthy directions
-- **Publication-driven**: Ideas should target specific top venues
+- **Practical-first**: Prefer ideas that can be implemented, tested, or adopted in real workflows.
+- **Ecosystem-aware**: Track fast-moving open-source releases, MCP servers, and agent tooling.
+- **Integration-oriented**: Favor ideas that connect agents, skills, models, and tools into usable systems.
+- **Evaluation-minded**: Prefer clear benchmarks, comparison criteria, and reproducible experiments.
