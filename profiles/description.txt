@@ -1,16 +1,16 @@
 I am a researcher focused on AI Agent Safety. My core research interests span the following areas:
 
-1. Agent Safety — Safety of LLM-based autonomous agents, including unsafe tool use, unintended side effects, goal misgeneralization, out-of-distribution behavior, and safe exploration in agentic workflows.
+1. Agent Safety - Safety of LLM-based autonomous agents, including unsafe tool use, unintended side effects, goal misgeneralization, out-of-distribution behavior, and safe exploration in agentic workflows.
 
-2. Hallucination — Factual errors, confabulation, and grounding failures in LLMs and agents; detection, mitigation, and evaluation of hallucination; retrieval-augmented generation as a countermeasure.
+2. Hallucination - Factual errors, confabulation, and grounding failures in LLMs and agents; detection, mitigation, and evaluation of hallucination; retrieval-augmented generation as a countermeasure.
 
-3. Misalignment — Value misalignment, reward hacking, specification gaming, Goodhart's Law, and failures of RLHF/RLAIF; scalable oversight, weak-to-strong generalization, and alignment evaluation.
+3. Misalignment - Value misalignment, reward hacking, specification gaming, Goodhart's Law, and failures of RLHF/RLAIF; scalable oversight, weak-to-strong generalization, and alignment evaluation.
 
-4. Deception — LLM deceptive behavior, sycophancy, sandbagging, hidden reasoning, strategic manipulation, and dishonesty in agents; detecting and eliciting deceptive behavior.
+4. Deception - LLM deceptive behavior, sycophancy, sandbagging, hidden reasoning, strategic manipulation, and dishonesty in agents; detecting and eliciting deceptive behavior.
 
-5. Codex / Code Agents — Safety of code-generating models and autonomous coding agents (e.g., OpenHands, SWE-agent, Codex); vulnerabilities introduced by agent-generated code, backdoors, and code-level attacks.
+5. Codex / Code Agents - Safety of code-generating models and autonomous coding agents (e.g., OpenHands, SWE-agent, Codex); vulnerabilities introduced by agent-generated code, backdoors, and code-level attacks.
 
-6. Prompt Optimization & Attacks — Adversarial prompts, jailbreaks, prompt injection, automated red-teaming, and prompt optimization methods (e.g., APE, GCG, AutoDAN); defenses and robustness to prompt-level attacks.
+6. Prompt Optimization & Attacks - Adversarial prompts, jailbreaks, prompt injection, automated red-teaming, and prompt optimization methods (e.g., APE, GCG, AutoDAN); defenses and robustness to prompt-level attacks.
 
 I am NOT interested in: computer vision safety, hardware security, network intrusion detection, classical ML robustness unrelated to LLMs.
 
