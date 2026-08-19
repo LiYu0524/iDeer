@@ -234,7 +234,7 @@ See [COMMERCIAL_LICENSE.md](./COMMERCIAL_LICENSE.md) for the short notice.
 
 **If this deer saves you time, give it a star**
 
-[![Star History Chart](https://api.star-history.com/svg?repos=LiYu0524/iDeer&type=Date)](https://star-history.com/#LiYu0524/iDeer&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=AI45Lab/iDeer&type=Date)](https://star-history.dera.page/#AI45Lab/iDeer&type=Date)
 
 AGPL-3.0 · Commercial licensing available · Made by [@LiYu0524](https://github.com/LiYu0524)
 
