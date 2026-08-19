@@ -220,7 +220,7 @@ A：重写 `build_eval_prompt()` 和 `parse_eval_response()`，鹿随你调教�
 
 **如果这只鹿帮你省了时间，给它一颗 ⭐**
 
-[![Star History Chart](https://api.star-history.com/svg?repos=LiYu0524/iDeer&type=Date)](https://star-history.com/#LiYu0524/iDeer&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=AI45Lab/iDeer&type=Date)](https://star-history.dera.page/#AI45Lab/iDeer&type=Date)
 
 AGPL-3.0 · Commercial licensing available · Made by [@LiYu0524](https://github.com/LiYu0524)
 
